@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<!DOCTYPE bulletml SYSTEM "./bulletml.dtd">
+<bulletml type="vertical" xmlns="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml">
+  <action label="top">
+    <repeat>
+      <times>Infinity</times>
+      <action>
+        <fire>
+          <speed>2 * (1 + $rank)</speed>
+          <bullet label="small" />
+        </fire>
+        <wait>90 * (1 - $rank * 0.5)</wait>
+      </action>
+    </repeat>
+  </action>
+</bulletml>

@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<!DOCTYPE bulletml SYSTEM "./bulletml.dtd">
+<bulletml type="vertical" xmlns="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml">
+  <action label="top0">
+    <fire>
+      <direction>-20</direction>
+      <speed>0.6</speed>
+      <bullet label="bullet2.png" />
+    </fire>
+    <repeat>
+      <times>20000</times>
+      <action>
+        <fire>
+          <direction type="sequence">4</direction>
+          <speed type="sequence">0</speed>
+          <bullet label="bullet2.png" />
+        </fire>
+        <repeat>
+          <times>3</times>
+          <action>
+            <fire>
+              <direction type="sequence">90</direction>
+              <speed type="sequence">0</speed>
+              <bullet label="bullet2.png" />
+            </fire>
+          </action>
+        </repeat>
+        <wait>1</wait>
+      </action>
+    </repeat>
+  </action>
+  <action label="top1">
+    <fire>
+      <direction>-20</direction>
+      <speed>0.3</speed>
+      <bullet label="bullet1.png" />
+    </fire>
+    <repeat>
+      <times>20000</times>
+      <action>
+        <fire>
+          <direction type="sequence">-7</direction>
+          <speed type="sequence">0</speed>
+          <bullet label="bullet1.png" />
+        </fire>
+        <repeat>
+          <times>3</times>
+          <action>
+            <fire>
+              <direction type="sequence">90</direction>
+              <speed type="sequence">0</speed>
+              <bullet label="bullet1.png" />
+            </fire>
+          </action>
+        </repeat>
+        <wait>1</wait>
+      </action>
+    </repeat>
+  </action>
+</bulletml>

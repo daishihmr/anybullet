@@ -34,6 +34,10 @@ phina.namespace(() => {
       }
     },
 
+    hit: function () {
+      this.remove();
+    },
+
     _accessor: {
       a: {
         get: function () {
@@ -44,7 +48,31 @@ phina.namespace(() => {
         get: function () {
           return this.position;
         },
-      }
-    }
+      },
+      left: {
+        get: function () {
+          return Math.min(this.a.x, this.b.x);
+        },
+        set: function () { },
+      },
+      right: {
+        get: function () {
+          return Math.max(this.a.x, this.b.x);
+        },
+        set: function () { },
+      },
+      top: {
+        get: function () {
+          return Math.min(this.a.y, this.b.y);
+        },
+        set: function () { },
+      },
+      bottom: {
+        get: function () {
+          return Math.max(this.a.y, this.b.y);
+        },
+        set: function () { },
+      },
+    },
   });
 });

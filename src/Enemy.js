@@ -8,6 +8,7 @@ phina.namespace(() => {
 
     hp: 0,
     r: 0,
+    power: 1,
 
     bullet: null,
     type: null,

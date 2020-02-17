@@ -22,9 +22,11 @@ phina.main(() => {
           },
           vertexShader: {
             "glsprite.vs": "./asset/shader/glsprite.vs",
+            "glsinglesprite.vs": "./asset/shader/glsinglesprite.vs",
           },
           fragmentShader: {
             "glsprite.fs": "./asset/shader/glsprite.fs",
+            "glsinglesprite.fs": "./asset/shader/glsinglesprite.fs",
           },
         },
       },

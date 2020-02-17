@@ -308,6 +308,7 @@ phina.namespace(() => {
 
     hp: 0,
     r: 0,
+    power: 1,
 
     bullet: null,
     type: null,
@@ -568,9 +569,11 @@ phina.main(() => {
           },
           vertexShader: {
             "glsprite.vs": "./asset/shader/glsprite.vs",
+            "glsinglesprite.vs": "./asset/shader/glsinglesprite.vs",
           },
           fragmentShader: {
             "glsprite.fs": "./asset/shader/glsprite.fs",
+            "glsinglesprite.fs": "./asset/shader/glsinglesprite.fs",
           },
         },
       },
@@ -860,6 +863,11 @@ phina.namespace(() => {
 
       const commonArray = renderer.getSpriteArray("common");
 
+      this.bulletTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.enemyTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.shotBulletTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.fighterTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+
       this.fromJSON({
         children: {
           seq: { className: "Stage1" },
@@ -957,6 +965,9 @@ phina.namespace(() => {
       };
       this.bulletmlManager = bulletmlManager;
 
+      // enemy
+      this.enemies = [];
+
       // stage
       this.seq.on("changescroll", ({ x, y, duration }) => {
         this.bg.tweener.clear().to({ vx: x, vy: y }, duration);
@@ -966,18 +977,6 @@ phina.namespace(() => {
       });
 
       this.one("enterframe", () => this.restart());
-
-      const test = Enemy({
-        bulletml: "test",
-      })
-        .setPosition(SCREEN_X + SCREEN_W * 0.5, SCREEN_Y + SCREEN_H * 0.5)
-        .addChildTo(this);
-
-      // setTimeout(() => {
-      //   const bulletmlRoot = BulletML.parse(test.bulletml);
-      //   bulletmlManager.run(test.bullet, bulletmlRoot);
-      // }, 500);
-      this.bg.vy = 1;
     },
 
     restart: function () {
@@ -988,6 +987,61 @@ phina.namespace(() => {
     },
 
     update: function () {
+      const bulletTree = this.bulletTree;
+      const enemyTree = this.enemyTree;
+      const shotBulletTree = this.shotBulletTree;
+      const fighterTree = this.fighterTree;
+
+      bulletTree.clear();
+      for (let i = 0, len = this.bullets.length; i < len; i++) {
+        const b = this.bullets[i];
+        if (b.parent || b.visible) bulletTree.addActor(b);
+      }
+      enemyTree.clear();
+      for (let i = 0, len = this.enemies.length; i < len; i++) {
+        const e = this.enemies[i];
+        if (e.parent && e.visible) enemyTree.addActor(e);
+      }
+      shotBulletTree.clear();
+      for (let i = 0, len = this.shotBullets.length; i < len; i++) {
+        const s = this.shotBullets[i];
+        if (s.parent) shotBulletTree.addActor(s);
+      }
+      fighterTree.clear();
+      if (this.fighter.parent && !this.fighter.muteki) fighterTree.addActor(this.fighter);
+
+      // shot vs enemy
+      DaiCol.hitTest(shotBulletTree, enemyTree, (s, e) => {
+        if (s.parent && e.parent) {
+          if (CollisionHelper.hitTestCircleLine(e, s)) {
+            e.damage(s.power);
+            s.hit();
+          }
+        }
+      });
+
+      // fighter vs bullet
+      if (this.fighter.parent && !this.fighter.muteki) {
+        DaiCol.hitTest(fighterTree, bulletTree, (f, b) => {
+          if (f.parent && b.parent) {
+            if (CollisionHelper.hitTestCircleCircle(f, b)) {
+              f.damage(b.power);
+              b.remove();
+            }
+          }
+        });
+      }
+
+      // fighter vs enemy
+      if (this.fighter.parent && !this.fighter.muteki) {
+        DaiCol.hitTest(fighterTree, enemyTree, (f, e) => {
+          if (f.parent && e.parent && e.type === "air") {
+            if (CollisionHelper.hitTestCircleCircle(f, e)) {
+              f.damage(e.power);
+            }
+          }
+        });
+      }
     }
   });
 
@@ -1018,62 +1072,6 @@ phina.namespace(() => {
   });
 });
 
-phina.namespace(() => {
-
-  const SPRITE_SCALE = 2;
-  const SPRITE_COUNT = 100;
-
-  const spaceship = new psg.Mask([
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 1, -1,
-    0, 0, 0, 0, 0, 0, 0, 1, -1,
-    0, 0, 0, 1, 0, 0, 1, 1, -1,
-    0, 0, 0, 1, 0, 0, 1, 1, -1,
-    0, 0, 1, 1, 0, 1, 1, 1, -1,
-    0, 0, 0, 1, 0, 0, 1, 1, -1,
-    0, 0, 1, 1, 0, 1, 1, 1, -1,
-    0, 1, 1, 1, 1, 1, 1, 2, 2,
-    0, 1, 1, 1, 1, 1, 1, 2, 2,
-    0, 1, 1, 1, 1, 1, 1, 2, 2,
-    0, 1, 1, 1, 1, 1, 1, 2, 2,
-    0, 1, 1, 1, 1, 1, 1, 2, 2,
-    0, 1, 1, 1, 1, 1, 1, 1, -1,
-    0, 0, 0, 1, 0, 0, 1, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 0
-  ], 9, 18, true, false);
-
-  phina.define("ShipTextureGenerator", {
-    _static: {
-      gen: function (scale, seed, params) {
-        const R = Random(seed);
-        const src = new psg.Sprite(spaceship, ({
-          colored: true,
-          saturation: 0.8,
-          random: () => R.random(),
-        }).$extend(params)).canvas;
-
-        const result = Canvas().setSize(src.width * scale, src.height * scale);
-
-        const srcCtx = src.getContext("2d");
-        const srcData = srcCtx.getImageData(0, 0, src.width, src.height).data;
-        for (let y = 0; y < src.height; y++) {
-          for (let x = 0; x < src.width; x++) {
-            const r = srcData[(y * src.width + x) * 4 + 0];
-            const g = srcData[(y * src.width + x) * 4 + 1];
-            const b = srcData[(y * src.width + x) * 4 + 2];
-            const a = srcData[(y * src.width + x) * 4 + 3];
-            result.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-            result.fillRect(x * scale, y * scale, scale, scale);
-          }
-        }
-
-        return result;
-      }
-    },
-  });
-});
 phina.namespace(() => {
 
   const SPEED = 18;
@@ -1110,6 +1108,10 @@ phina.namespace(() => {
       }
     },
 
+    hit: function () {
+      this.remove();
+    },
+
     _accessor: {
       a: {
         get: function () {
@@ -1120,8 +1122,32 @@ phina.namespace(() => {
         get: function () {
           return this.position;
         },
-      }
-    }
+      },
+      left: {
+        get: function () {
+          return Math.min(this.a.x, this.b.x);
+        },
+        set: function () { },
+      },
+      right: {
+        get: function () {
+          return Math.max(this.a.x, this.b.x);
+        },
+        set: function () { },
+      },
+      top: {
+        get: function () {
+          return Math.min(this.a.y, this.b.y);
+        },
+        set: function () { },
+      },
+      bottom: {
+        get: function () {
+          return Math.max(this.a.y, this.b.y);
+        },
+        set: function () { },
+      },
+    },
   });
 });
 
@@ -1511,7 +1537,7 @@ phina.namespace(() => {
       this.renderChildren(scene);
       for (let name in this.spriteArrays) {
         const array = this.spriteArrays[name];
-        array.draw();
+        array.draw(gl);
       }
     },
 
@@ -1534,6 +1560,8 @@ phina.namespace(() => {
 
       context.globalAlpha = obj._worldAlpha;
       context.globalCompositeOperation = obj.blendMode;
+
+      obj.draw && obj.draw(this.gl);
 
       let tempChildren = obj.children.slice();
       for (let i = 0, len = tempChildren.length; i < len; ++i) {
@@ -1589,9 +1617,142 @@ phina.namespace(() => {
 
 phina.namespace(() => {
 
+  /**
+   * インスタンシングを使わないやつ
+   */
+  phina.define("GLSingleSprite", {
+
+    superClass: "DisplayElement",
+
+    z: 0,
+
+    init: function (options) {
+      options = ({}).$extend(GLSingleSprite.defaults, options);
+      this.superInit(options);
+
+      if (typeof (options.image) == "string") {
+        this.image = AssetManager.get("image", options.image);
+      } else {
+        this.image = options.image;
+      }
+      this.width = this.image.domElement.width;
+      this.height = this.image.domElement.height;
+
+      this.depthEnabled = options.depthEnabled;
+      this.blendMode = options.blendMode;
+      this.alphaEnabled = options.alphaEnabled;
+      this.brightness = options.brightness;
+
+      const gl = options.gl;
+      this.texture = phigl.Texture(gl, this.image);
+
+      if (GLSingleSprite.drawable == null) {
+        const program = phigl.Program(gl)
+          .attach("glsinglesprite.vs")
+          .attach("glsinglesprite.fs")
+          .link();
+        GLSingleSprite.drawable = phigl.Drawable(gl)
+          .setProgram(program)
+          .setIndexValues([0, 1, 2, 1, 3, 2])
+          .declareAttributes("position", "uv")
+          .setAttributeDataArray([{
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ]
+          }, {
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ],
+          },])
+          .createVao()
+          .declareUniforms(
+            "instanceActive",
+            "instancePosition",
+            "instanceSize",
+            "instanceAlphaEnabled",
+            "instanceAlpha",
+            "instanceBrightness",
+            "cameraMatrix0",
+            "cameraMatrix1",
+            "cameraMatrix2",
+            "screenSize",
+            "texture"
+          );
+      }
+    },
+
+    setZ: function (v) {
+      this.z = v;
+      return this;
+    },
+
+    draw: function (gl) {
+      const drawable = GLSingleSprite.drawable;
+
+      if (this.depthEnabled) {
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+      } else {
+        gl.disable(gl.DEPTH_TEST);
+      }
+
+      if (this.blendMode === "source-over") {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      } else if (this.options.blendMode === "lighter") {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+      } else {
+        gl.disable(gl.BLEND);
+      }
+
+      const m = this._worldMatrix;
+      const uni = drawable.uniforms;
+      uni["instanceActive"].setValue((this.parent && this.visible) ? 1 : 0);
+      if (this.parent && this.visible) {
+        uni["instancePosition"].setValue([-this.width * this.originX, -this.height * this.originY, this.z]);
+        uni["instanceSize"].setValue([this.width, this.height]);
+        uni["instanceAlphaEnabled"].setValue(this.alphaEnabled ? 1 : 0);
+        uni["instanceAlpha"].setValue(this._worldAlpha);
+        uni["instanceBrightness"].setValue(this.brightness);
+        uni["cameraMatrix0"].setValue([m.m00, m.m10]);
+        uni["cameraMatrix1"].setValue([m.m01, m.m11]);
+        uni["cameraMatrix2"].setValue([m.m02, m.m12]);
+        uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
+        uni["texture"].setValue(1).setTexture(this.texture);
+      }
+
+      drawable.draw();
+    },
+
+    _static: {
+      defaults: {
+        depthEnabled: true,
+        blendMode: "source-over",
+        alphaEnabled: false,
+        brightness: 1.0,
+      },
+      program: null,
+    },
+  });
+
+});
+
+phina.namespace(() => {
+
   phina.define("GLSpriteArray", {
 
     init: function (gl, atlas, max, options) {
+      options = ({}).$extend(GLSpriteArray.defaults, options);
+
       this.gl = gl;
       this.indexPool = Array.range(0, max);
       this.instances = [];
@@ -1600,56 +1761,60 @@ phina.namespace(() => {
       this.image = this.atlas.images[Object.keys(this.atlas.images)[0]];
       this.texture = phigl.Texture(gl, this.image);
       this.max = max;
-      this.options = ({}).$extend(GLSpriteArray.defaults, options);
 
-      const ext = phigl.Extensions.getInstancedArrays(gl);
+      this.depthEnabled = options.depthEnabled;
+      this.blendMode = options.blendMode;
 
-      const program = phigl.Program(gl)
-        .attach("glsprite.vs")
-        .attach("glsprite.fs")
-        .link();
+      if (GLSpriteArray.drawable == null) {
+        const ext = phigl.Extensions.getInstancedArrays(gl);
 
-      this.drawable = phigl.InstancedDrawable(gl, ext)
-        .setProgram(program)
-        .setIndexValues([0, 1, 2, 1, 3, 2])
-        .declareAttributes("position", "uv")
-        .setAttributeDataArray([{
-          unitSize: 2,
-          data: [
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0,
-          ]
-        }, {
-          unitSize: 2,
-          data: [
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0,
-          ],
-        },])
-        .createVao()
-        .declareInstanceAttributes(
-          "instanceActive",
-          "instanceUvMatrix0",
-          "instanceUvMatrix1",
-          "instanceUvMatrix2",
-          "instancePosition",
-          "instanceSize",
-          "instanceAlphaEnabled",
-          "instanceAlpha",
-          "instanceBrightness",
-          "cameraMatrix0",
-          "cameraMatrix1",
-          "cameraMatrix2",
-        )
-        .declareUniforms("screenSize", "texture");
+        const program = phigl.Program(gl)
+          .attach("glsprite.vs")
+          .attach("glsprite.fs")
+          .link();
+
+        GLSpriteArray.drawable = phigl.InstancedDrawable(gl, ext)
+          .setProgram(program)
+          .setIndexValues([0, 1, 2, 1, 3, 2])
+          .declareAttributes("position", "uv")
+          .setAttributeDataArray([{
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ]
+          }, {
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ],
+          },])
+          .createVao()
+          .declareInstanceAttributes(
+            "instanceActive",
+            "instanceUvMatrix0",
+            "instanceUvMatrix1",
+            "instanceUvMatrix2",
+            "instancePosition",
+            "instanceSize",
+            "instanceAlphaEnabled",
+            "instanceAlpha",
+            "instanceBrightness",
+            "cameraMatrix0",
+            "cameraMatrix1",
+            "cameraMatrix2",
+          )
+          .declareUniforms("screenSize", "texture");
+      }
 
       this.array = [];
       for (let i = 0; i < max; i++) {
-        Array.prototype.push.apply(this.array, [
+        this.array.push(...[
           // active
           0,
           // uv matrix
@@ -1672,24 +1837,22 @@ phina.namespace(() => {
           0, 0,
         ]);
       }
-      this.drawable.setInstanceAttributeData(this.array);
     },
 
-    draw: function () {
-      const gl = this.gl;
-      const drawable = this.drawable;
+    draw: function (gl) {
+      const drawable = GLSpriteArray.drawable;
 
-      if (this.options.depthEnabled) {
+      if (this.depthEnabled) {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
       } else {
         gl.disable(gl.DEPTH_TEST);
       }
 
-      if (this.options.blendMode === "source-over") {
+      if (this.blendMode === "source-over") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else if (this.options.blendMode === "lighter") {
+      } else if (this.blendMode === "lighter") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
       } else {
@@ -1716,6 +1879,7 @@ phina.namespace(() => {
         depthEnabled: true,
         blendMode: "source-over",
       },
+      drawable: null,
     },
   });
 
@@ -1802,7 +1966,7 @@ phina.namespace(() => {
 
       // active
       array[idx * size + 0] = (this.parent && this.visible) ? 1 : 0;
-      if (this.parent) {
+      if (this.parent && this.visible) {
         // uv matrix
         array[idx * size + 1] = uvm.m00;
         array[idx * size + 2] = uvm.m10;

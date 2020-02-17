@@ -18,6 +18,11 @@ phina.namespace(() => {
 
       const commonArray = renderer.getSpriteArray("common");
 
+      this.bulletTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.enemyTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.shotBulletTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+      this.fighterTree = new DaiCol.LinearQuadTreeSpace(CANVAS_WIDTH, CANVAS_HEIGHT, 2);
+
       this.fromJSON({
         children: {
           seq: { className: "Stage1" },
@@ -115,6 +120,9 @@ phina.namespace(() => {
       };
       this.bulletmlManager = bulletmlManager;
 
+      // enemy
+      this.enemies = [];
+
       // stage
       this.seq.on("changescroll", ({ x, y, duration }) => {
         this.bg.tweener.clear().to({ vx: x, vy: y }, duration);
@@ -124,18 +132,6 @@ phina.namespace(() => {
       });
 
       this.one("enterframe", () => this.restart());
-
-      const test = Enemy({
-        bulletml: "test",
-      })
-        .setPosition(SCREEN_X + SCREEN_W * 0.5, SCREEN_Y + SCREEN_H * 0.5)
-        .addChildTo(this);
-
-      // setTimeout(() => {
-      //   const bulletmlRoot = BulletML.parse(test.bulletml);
-      //   bulletmlManager.run(test.bullet, bulletmlRoot);
-      // }, 500);
-      this.bg.vy = 1;
     },
 
     restart: function () {
@@ -146,6 +142,61 @@ phina.namespace(() => {
     },
 
     update: function () {
+      const bulletTree = this.bulletTree;
+      const enemyTree = this.enemyTree;
+      const shotBulletTree = this.shotBulletTree;
+      const fighterTree = this.fighterTree;
+
+      bulletTree.clear();
+      for (let i = 0, len = this.bullets.length; i < len; i++) {
+        const b = this.bullets[i];
+        if (b.parent || b.visible) bulletTree.addActor(b);
+      }
+      enemyTree.clear();
+      for (let i = 0, len = this.enemies.length; i < len; i++) {
+        const e = this.enemies[i];
+        if (e.parent && e.visible) enemyTree.addActor(e);
+      }
+      shotBulletTree.clear();
+      for (let i = 0, len = this.shotBullets.length; i < len; i++) {
+        const s = this.shotBullets[i];
+        if (s.parent) shotBulletTree.addActor(s);
+      }
+      fighterTree.clear();
+      if (this.fighter.parent && !this.fighter.muteki) fighterTree.addActor(this.fighter);
+
+      // shot vs enemy
+      DaiCol.hitTest(shotBulletTree, enemyTree, (s, e) => {
+        if (s.parent && e.parent) {
+          if (CollisionHelper.hitTestCircleLine(e, s)) {
+            e.damage(s.power);
+            s.hit();
+          }
+        }
+      });
+
+      // fighter vs bullet
+      if (this.fighter.parent && !this.fighter.muteki) {
+        DaiCol.hitTest(fighterTree, bulletTree, (f, b) => {
+          if (f.parent && b.parent) {
+            if (CollisionHelper.hitTestCircleCircle(f, b)) {
+              f.damage(b.power);
+              b.remove();
+            }
+          }
+        });
+      }
+
+      // fighter vs enemy
+      if (this.fighter.parent && !this.fighter.muteki) {
+        DaiCol.hitTest(fighterTree, enemyTree, (f, e) => {
+          if (f.parent && e.parent && e.type === "air") {
+            if (CollisionHelper.hitTestCircleCircle(f, e)) {
+              f.damage(e.power);
+            }
+          }
+        });
+      }
     }
   });
 

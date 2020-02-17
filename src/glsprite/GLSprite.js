@@ -3,6 +3,8 @@ phina.namespace(() => {
   phina.define("GLSpriteArray", {
 
     init: function (gl, atlas, max, options) {
+      options = ({}).$extend(GLSpriteArray.defaults, options);
+
       this.gl = gl;
       this.indexPool = Array.range(0, max);
       this.instances = [];
@@ -11,56 +13,60 @@ phina.namespace(() => {
       this.image = this.atlas.images[Object.keys(this.atlas.images)[0]];
       this.texture = phigl.Texture(gl, this.image);
       this.max = max;
-      this.options = ({}).$extend(GLSpriteArray.defaults, options);
 
-      const ext = phigl.Extensions.getInstancedArrays(gl);
+      this.depthEnabled = options.depthEnabled;
+      this.blendMode = options.blendMode;
 
-      const program = phigl.Program(gl)
-        .attach("glsprite.vs")
-        .attach("glsprite.fs")
-        .link();
+      if (GLSpriteArray.drawable == null) {
+        const ext = phigl.Extensions.getInstancedArrays(gl);
 
-      this.drawable = phigl.InstancedDrawable(gl, ext)
-        .setProgram(program)
-        .setIndexValues([0, 1, 2, 1, 3, 2])
-        .declareAttributes("position", "uv")
-        .setAttributeDataArray([{
-          unitSize: 2,
-          data: [
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0,
-          ]
-        }, {
-          unitSize: 2,
-          data: [
-            0, 1,
-            1, 1,
-            0, 0,
-            1, 0,
-          ],
-        },])
-        .createVao()
-        .declareInstanceAttributes(
-          "instanceActive",
-          "instanceUvMatrix0",
-          "instanceUvMatrix1",
-          "instanceUvMatrix2",
-          "instancePosition",
-          "instanceSize",
-          "instanceAlphaEnabled",
-          "instanceAlpha",
-          "instanceBrightness",
-          "cameraMatrix0",
-          "cameraMatrix1",
-          "cameraMatrix2",
-        )
-        .declareUniforms("screenSize", "texture");
+        const program = phigl.Program(gl)
+          .attach("glsprite.vs")
+          .attach("glsprite.fs")
+          .link();
+
+        GLSpriteArray.drawable = phigl.InstancedDrawable(gl, ext)
+          .setProgram(program)
+          .setIndexValues([0, 1, 2, 1, 3, 2])
+          .declareAttributes("position", "uv")
+          .setAttributeDataArray([{
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ]
+          }, {
+            unitSize: 2,
+            data: [
+              0, 1,
+              1, 1,
+              0, 0,
+              1, 0,
+            ],
+          },])
+          .createVao()
+          .declareInstanceAttributes(
+            "instanceActive",
+            "instanceUvMatrix0",
+            "instanceUvMatrix1",
+            "instanceUvMatrix2",
+            "instancePosition",
+            "instanceSize",
+            "instanceAlphaEnabled",
+            "instanceAlpha",
+            "instanceBrightness",
+            "cameraMatrix0",
+            "cameraMatrix1",
+            "cameraMatrix2",
+          )
+          .declareUniforms("screenSize", "texture");
+      }
 
       this.array = [];
       for (let i = 0; i < max; i++) {
-        Array.prototype.push.apply(this.array, [
+        this.array.push(...[
           // active
           0,
           // uv matrix
@@ -83,24 +89,22 @@ phina.namespace(() => {
           0, 0,
         ]);
       }
-      this.drawable.setInstanceAttributeData(this.array);
     },
 
-    draw: function () {
-      const gl = this.gl;
-      const drawable = this.drawable;
+    draw: function (gl) {
+      const drawable = GLSpriteArray.drawable;
 
-      if (this.options.depthEnabled) {
+      if (this.depthEnabled) {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
       } else {
         gl.disable(gl.DEPTH_TEST);
       }
 
-      if (this.options.blendMode === "source-over") {
+      if (this.blendMode === "source-over") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else if (this.options.blendMode === "lighter") {
+      } else if (this.blendMode === "lighter") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
       } else {
@@ -127,6 +131,7 @@ phina.namespace(() => {
         depthEnabled: true,
         blendMode: "source-over",
       },
+      drawable: null,
     },
   });
 
@@ -213,7 +218,7 @@ phina.namespace(() => {
 
       // active
       array[idx * size + 0] = (this.parent && this.visible) ? 1 : 0;
-      if (this.parent) {
+      if (this.parent && this.visible) {
         // uv matrix
         array[idx * size + 1] = uvm.m00;
         array[idx * size + 2] = uvm.m10;

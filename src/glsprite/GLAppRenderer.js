@@ -37,7 +37,7 @@ phina.namespace(() => {
       this.renderChildren(scene);
       for (let name in this.spriteArrays) {
         const array = this.spriteArrays[name];
-        array.draw();
+        array.draw(gl);
       }
     },
 
@@ -60,6 +60,8 @@ phina.namespace(() => {
 
       context.globalAlpha = obj._worldAlpha;
       context.globalCompositeOperation = obj.blendMode;
+
+      obj.draw && obj.draw(this.gl);
 
       let tempChildren = obj.children.slice();
       for (let i = 0, len = tempChildren.length; i < len; ++i) {

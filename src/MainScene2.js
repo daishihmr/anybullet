@@ -14,7 +14,9 @@ phina.namespace(() => {
 
     init: function (params) {
       this.superInit();
+
       const renderer = params.app.renderer;
+      const gl = params.app.gl;
 
       const commonArray = renderer.getSpriteArray("common");
 
@@ -47,7 +49,7 @@ phina.namespace(() => {
             x: CANVAS_WIDTH,
             z: 100,
           },
-          bg: { className: "Background", arguments: { spriteArray: commonArray, speed: 1.0 } },
+          // bg: { className: "Background", arguments: { spriteArray: commonArray, speed: 1.0 } },
           black: {
             className: "GLSprite",
             arguments: {
@@ -132,6 +134,14 @@ phina.namespace(() => {
       });
 
       this.one("enterframe", () => this.restart());
+
+      GLTiledMap({ gl, tiledAsset: "test" })
+        .setZ(20.1)
+        .addChildTo(this);
+      GLSingleSprite({ gl, image: "test" })
+        .setPosition(256, 100)
+        .setZ(40.1)
+        .addChildTo(this);
     },
 
     restart: function () {

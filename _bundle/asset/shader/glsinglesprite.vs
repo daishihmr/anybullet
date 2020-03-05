@@ -12,6 +12,7 @@ uniform vec2 cameraMatrix1;
 uniform vec2 cameraMatrix2;
 uniform vec2 screenSize;
 
+varying vec3 vPosition;
 varying float vBrightness;
 varying float vAlphaEnabled;
 varying float vAlpha;
@@ -46,9 +47,14 @@ void main(void) {
       0.0, 0.0, 1.0
     );
 
-    vec3 p = cameraMatrix * m * vec3(position, 1.0);
-    vec3 p2 = (p + vec3(-screenSize.x * 0.5, -screenSize.y * 0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), -1.0 / (screenSize.y * 0.5), 0.0);
-    p2.z = instancePosition.z * -0.001;
-    gl_Position = vec4(p2, 1.0);
+    // ワールド座標
+    vec3 worldPosition = cameraMatrix * m * vec3(position, 1.0);
+    vPosition = worldPosition;
+
+    // スクリーン座標
+    vec3 screenPosition = (worldPosition + vec3(screenSize.x * -0.5, screenSize.y * -0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), 1.0 / (screenSize.y * -0.5), 0.0);
+    screenPosition.z = instancePosition.z * -0.001;
+
+    gl_Position = vec4(screenPosition, 1.0);
   }
 }

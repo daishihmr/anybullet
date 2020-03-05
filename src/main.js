@@ -14,6 +14,12 @@ phina.main(() => {
       className: "GLLoadingScene",
       arguments: {
         assets: {
+          image: {
+            "black": "./asset/image/black.png",
+            "no_normal": "./asset/image/no_normal.png",
+            "test": "./asset/test/fighter_big.png",
+            "test_n": "./asset/test/fighter_big_n.png",
+          },
           xml: {
             "test": "./asset/bulletml/test.xml",
           },
@@ -23,16 +29,24 @@ phina.main(() => {
           vertexShader: {
             "glsprite.vs": "./asset/shader/glsprite.vs",
             "glsinglesprite.vs": "./asset/shader/glsinglesprite.vs",
+            "gltiledmap.vs": "./asset/shader/gltiledmap.vs",
           },
           fragmentShader: {
             "glsprite.fs": "./asset/shader/glsprite.fs",
             "glsinglesprite.fs": "./asset/shader/glsinglesprite.fs",
+            "gltiledmap.fs": "./asset/shader/gltiledmap.fs",
+          },
+          tiled: {
+            "test": "./asset/map/test.json",
           },
         },
       },
     }, {
       label: "glinit",
       className: "GLInitScene",
+      arguments: {
+        common: { atlas: "common", max: 3000 },
+      },
     }, {
       label: "main",
       className: "MainScene2",

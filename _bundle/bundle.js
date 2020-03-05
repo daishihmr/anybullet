@@ -483,14 +483,14 @@ phina.namespace(() => {
         .clear()
         .set({
           visible: true,
-          x: CANVAS_WIDTH * 0.5,
-          y: CANVAS_HEIGHT * 1.2,
+          x: SCREEN_X + SCREEN_W * 0.2,
+          y: SCREEN_Y + SCREEN_H * 1.2,
           controllable: false,
           muteki: true,
         })
         .wait(1000)
         .to({
-          y: CANVAS_HEIGHT * 0.9,
+          y: SCREEN_Y + SCREEN_H * 0.9,
         }, 800, "easeOutBack")
         .set({
           controllable: true,
@@ -532,15 +532,41 @@ phina.namespace(() => {
   phina.define("GLInitScene", {
     superClass: "Scene",
 
-    init: function () {
+    init: function (options) {
       this.superInit();
+      
+      console.log("init begin");
+
+      const renderer = options.app.renderer;
+      const spec = options.spriteArray;
+      for (let name in spec) {
+        renderer.addSpriteArray(name, spec[name].atlas, spec[name].max);
+      }
       this.one("enterframe", () => this.start());
     },
 
-    start: function() {
-      this.app.renderer.addSpriteArray("common", "common", 30000);
+    start: function () {
       this.exit();
     },
+  });
+
+});
+
+phina.namespace(() => {
+
+  phina.define("Lighting", {
+
+    ambient: null,
+    pointLights: null,
+
+    init: function () {
+      this.ambient = [0, 0, 0, 1];
+      this.pointLights = Array.range(0, 8).map(index => {
+        const pl = PointLight({ index });
+        return pl;
+      });
+    },
+
   });
 
 });
@@ -561,6 +587,12 @@ phina.main(() => {
       className: "GLLoadingScene",
       arguments: {
         assets: {
+          image: {
+            "black": "./asset/image/black.png",
+            "no_normal": "./asset/image/no_normal.png",
+            "test": "./asset/test/fighter_big.png",
+            "test_n": "./asset/test/fighter_big_n.png",
+          },
           xml: {
             "test": "./asset/bulletml/test.xml",
           },
@@ -570,16 +602,24 @@ phina.main(() => {
           vertexShader: {
             "glsprite.vs": "./asset/shader/glsprite.vs",
             "glsinglesprite.vs": "./asset/shader/glsinglesprite.vs",
+            "gltiledmap.vs": "./asset/shader/gltiledmap.vs",
           },
           fragmentShader: {
             "glsprite.fs": "./asset/shader/glsprite.fs",
             "glsinglesprite.fs": "./asset/shader/glsinglesprite.fs",
+            "gltiledmap.fs": "./asset/shader/gltiledmap.fs",
+          },
+          tiled: {
+            "test": "./asset/map/test.json",
           },
         },
       },
     }, {
       label: "glinit",
       className: "GLInitScene",
+      arguments: {
+        common: { atlas: "common", max: 3000 },
+      },
     }, {
       label: "main",
       className: "MainScene2",
@@ -859,7 +899,9 @@ phina.namespace(() => {
 
     init: function (params) {
       this.superInit();
+
       const renderer = params.app.renderer;
+      const gl = params.app.gl;
 
       const commonArray = renderer.getSpriteArray("common");
 
@@ -892,7 +934,7 @@ phina.namespace(() => {
             x: CANVAS_WIDTH,
             z: 100,
           },
-          bg: { className: "Background", arguments: { spriteArray: commonArray, speed: 1.0 } },
+          // bg: { className: "Background", arguments: { spriteArray: commonArray, speed: 1.0 } },
           black: {
             className: "GLSprite",
             arguments: {
@@ -977,6 +1019,14 @@ phina.namespace(() => {
       });
 
       this.one("enterframe", () => this.restart());
+
+      GLTiledMap({ gl, tiledAsset: "test" })
+        .setZ(20.1)
+        .addChildTo(this);
+      GLSingleSprite({ gl, image: "test" })
+        .setPosition(256, 100)
+        .setZ(40.1)
+        .addChildTo(this);
     },
 
     restart: function () {
@@ -1043,6 +1093,56 @@ phina.namespace(() => {
         });
       }
     }
+  });
+
+});
+
+phina.namespace(() => {
+
+  phina.define("PointLight", {
+    superClass: "DisplayElement",
+
+    index: 0,
+    z: 0,
+
+    r: 0,
+    g: 0,
+    b: 0,
+    power: 0,
+
+    init: function (options) {
+      options = ({}).$extend(PointLight.defaults, options);
+      this.superInit(options);
+      this.index = options.index;
+      this.z = options.z;
+    },
+
+    setZ: function (value) {
+      this.z = value;
+      return this;
+    },
+
+    set: function (drawable) {
+      const uni = drawable.uniforms;
+      const i = this.index;
+      if (this.parent && this.visible) {
+        uni[`lightColor[${i}]`].setValue([this.r / 255, this.g / 255, this.b / 255, 1]);
+        uni[`lightPower[${i}]`].setValue(this.power);
+        uni[`lightPosition[${i}]`].setValue([this.x, this.y, this.z]);
+      } else {
+        uni[`lightColor[${i}]`].setValue([0, 0, 0, 1]);
+        uni[`lightPower[${i}]`].setValue(0);
+        uni[`lightPosition[${i}]`].setValue([0, 0, 0]);
+      }
+    },
+
+    _static: {
+      defaults: {
+        z: 30,
+        power: 0,
+      },
+    },
+
   });
 
 });
@@ -1210,6 +1310,108 @@ phina.namespace(() => {
     changeScroll: function (x, y, duration) {
       this.flare("changescroll", { x, y, duration });
     },
+  });
+
+});
+
+phina.namespace(() => {
+
+  phina.define("TiledAsset", {
+    superClass: "phina.asset.Asset",
+
+    init: function () {
+      this.superInit();
+      this.tilesets = null;
+    },
+
+    _load: function (resolve) {
+      const src = this.src.startsWith("/") ? this.src : "./" + this.src;
+      const basePath = src.substring(0, src.lastIndexOf("/") + 1);
+      fetch(src)
+        .then(res => res.json())
+        .then(json => {
+          this.json = json;
+          Promise.all(
+            json.tilesets.map((ts, id) => Tileset(id, ts).load(basePath + ts.source))
+          ).then(tilesets => {
+            this.tilesets = tilesets;
+            resolve(this);
+          });
+        });
+    },
+  });
+
+  phina.define("Tileset", {
+    init: function (id, tileset) {
+      this.id = id;
+      this.image = null;
+      this.normalImage = null;
+      this.firstgid = tileset.firstgid;
+      this.source = tileset.source;
+
+      this.json = null;
+      this.tilewidth = 0;
+      this.tileheight = 0;
+      this.imagewidth = 0;
+      this.imageheight = 0;
+      this.cols = 0;
+      this.rows = 0;
+    },
+
+    load: function (path) {
+      return new Promise(resolve => {
+        fetch(path).then(res => res.json()).then(json => {
+          this.json = json;
+          this.setup();
+          if (json.image) {
+            const _path = path.startsWith("/") ? path : "./" + path;
+            const basePath = _path.substring(0, _path.lastIndexOf("/") + 1);
+            Flow.resolve()
+              .then(() => {
+                this.image = phina.asset.Texture();
+                return this.image.load(basePath + json.image);
+              })
+              .then(() => {
+                const filename = json.image.replace(".png", "_n.png");
+                this.normalImage = phina.asset.Texture();
+                return this.normalImage.load(basePath + filename);
+              })
+              .then(() => resolve(this));
+          } else {
+            resolve(this);
+          }
+        });
+      });
+    },
+
+    setup: function () {
+      this.tilewidth = this.json.tilewidth;
+      this.tileheight = this.json.tileheight;
+      this.imagewidth = this.json.imagewidth;
+      this.imageheight = this.json.imageheight;
+      this.cols = this.imagewidth / this.json.tilewidth;
+      this.rows = this.imageheight / this.json.tileheight;
+    },
+
+    calcUv: function (cell) {
+      const index = cell - this.firstgid;
+      const u0 = (index % this.cols) * this.tilewidth / this.imagewidth;
+      const u1 = u0 + this.tilewidth / this.imagewidth;
+      const v0 = (Math.floor(index / this.cols) * this.tileheight) / this.imageheight;
+      const v1 = v0 + this.tileheight / this.imageheight;
+
+      return [
+        u0, v1,
+        u1, v1,
+        u0, v0,
+        u1, v0,
+      ];
+    },
+  });
+
+  phina.asset.AssetLoader.register('tiled', function (key, src) {
+    var asset = TiledAsset();
+    return asset.load(src);
   });
 
 });
@@ -1509,7 +1711,7 @@ phina.namespace(() => {
       gl.clearColor(0.1, 0.1, 0.2, 1.0);
       gl.clearDepth(1.0);
 
-      // gl.enable(gl.CULL_FACE);
+      gl.enable(gl.CULL_FACE);
       gl.enable(gl.DEPTH_TEST);
       gl.enable(gl.BLEND);
       gl.depthFunc(gl.LEQUAL);
@@ -1616,7 +1818,6 @@ phina.namespace(() => {
 });
 
 phina.namespace(() => {
-
   /**
    * インスタンシングを使わないやつ
    */
@@ -1630,13 +1831,15 @@ phina.namespace(() => {
       options = ({}).$extend(GLSingleSprite.defaults, options);
       this.superInit(options);
 
+      let image = null;
       if (typeof (options.image) == "string") {
-        this.image = AssetManager.get("image", options.image);
+        image = AssetManager.get("image", options.image);
       } else {
-        this.image = options.image;
+        image = options.image;
       }
-      this.width = this.image.domElement.width;
-      this.height = this.image.domElement.height;
+
+      this.width = image.domElement.width;
+      this.height = image.domElement.height;
 
       this.depthEnabled = options.depthEnabled;
       this.blendMode = options.blendMode;
@@ -1644,7 +1847,21 @@ phina.namespace(() => {
       this.brightness = options.brightness;
 
       const gl = options.gl;
-      this.texture = phigl.Texture(gl, this.image);
+      if (typeof (options.image) == "string") {
+        this.texture = TextureAsset.get(gl, options.image);
+        this.normalMap = TextureAsset.get(gl, options.image + "_n");
+        this.emissionMap = TextureAsset.get(gl, options.image + "_e");
+      } else {
+        this.texture = options.image;
+        this.normalMap = options.normalMap;
+        this.emissionMap = options.emissionMap;
+      }
+      if (this.normalMap == null) {
+        this.normalMap = TextureAsset.get(gl, GLSingleSprite.defaults.normalMap);
+      }
+      if (this.emissionMap == null) {
+        this.emissionMap = TextureAsset.get(gl, GLSingleSprite.defaults.emissionMap);
+      }
 
       if (GLSingleSprite.drawable == null) {
         const program = phigl.Program(gl)
@@ -1684,7 +1901,13 @@ phina.namespace(() => {
             "cameraMatrix1",
             "cameraMatrix2",
             "screenSize",
-            "texture"
+            "texture",
+            "texture_n",
+            "texture_e",
+            "ambientColor",
+            "lightColor",
+            "lightPower",
+            "lightPosition",
           );
       }
     },
@@ -1727,7 +1950,15 @@ phina.namespace(() => {
         uni["cameraMatrix1"].setValue([m.m01, m.m11]);
         uni["cameraMatrix2"].setValue([m.m02, m.m12]);
         uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
-        uni["texture"].setValue(1).setTexture(this.texture);
+        uni["texture"].setValue(0).setTexture(this.texture);
+        uni["texture_n"].setValue(1).setTexture(this.normalMap);
+        uni["texture_e"].setValue(2).setTexture(this.emissionMap);
+        uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+        for (let i = 0; i < 10; i++) {
+          uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
+          uni[`lightPower[${i}]`].setValue(lightPower);
+          uni[`lightPosition[${i}]`].setValue(pos[i]);
+        }
       }
 
       drawable.draw();
@@ -1739,8 +1970,10 @@ phina.namespace(() => {
         blendMode: "source-over",
         alphaEnabled: false,
         brightness: 1.0,
+        normalMap: "no_normal",
+        emissionMap: "black",
       },
-      program: null,
+      drawable: null,
     },
   });
 
@@ -1758,6 +1991,7 @@ phina.namespace(() => {
       this.instances = [];
 
       this.atlas = phina.asset.AssetManager.get("atlas", atlas);
+
       this.image = this.atlas.images[Object.keys(this.atlas.images)[0]];
       this.texture = phigl.Texture(gl, this.image);
       this.max = max;
@@ -1773,19 +2007,14 @@ phina.namespace(() => {
           .attach("glsprite.fs")
           .link();
 
+        console.log("drawable start");
+
         GLSpriteArray.drawable = phigl.InstancedDrawable(gl, ext)
           .setProgram(program)
           .setIndexValues([0, 1, 2, 1, 3, 2])
-          .declareAttributes("position", "uv")
+          .declareAttributes("posuv")
           .setAttributeDataArray([{
-            unitSize: 2,
-            data: [
-              0, 1,
-              1, 1,
-              0, 0,
-              1, 0,
-            ]
-          }, {
+            // position, uv
             unitSize: 2,
             data: [
               0, 1,
@@ -1796,41 +2025,48 @@ phina.namespace(() => {
           },])
           .createVao()
           .declareInstanceAttributes(
-            "instanceActive",
             "instanceUvMatrix0",
             "instanceUvMatrix1",
-            "instanceUvMatrix2",
+            "instanceUvMatrixN0",
+            "instanceUvMatrixN1",
+            "instanceUvMatrixE0",
+            "instanceUvMatrixE1",
             "instancePosition",
             "instanceSize",
-            "instanceAlphaEnabled",
-            "instanceAlpha",
-            "instanceBrightness",
             "cameraMatrix0",
             "cameraMatrix1",
-            "cameraMatrix2",
           )
-          .declareUniforms("screenSize", "texture");
+          .declareUniforms(
+            "screenSize",
+            "texture",
+            "ambientColor",
+            "lightColor",
+            "lightPower",
+            "lightPosition",
+          );
+
+        console.log("drawable ok");
       }
 
       this.array = [];
       for (let i = 0; i < max; i++) {
         this.array.push(...[
-          // active
-          0,
           // uv matrix
+          1, 0,
+          0, 1,
+          0, 0,
+          // uv matrix normal
+          1, 0,
+          0, 1,
+          0, 0,
+          // // uv matrix emission
           1, 0,
           0, 1,
           0, 0,
           // sprite position
           0, 0, 0,
-          // sprite size
-          0, 0,
-          // sprite alpha enabled
-          0,
-          // sprite alpha
-          1,
-          // sprite brightness
-          1,
+          // sprite size ( + active)
+          0, 0, 0,
           // camera matrix
           1, 0,
           0, 1,
@@ -1863,8 +2099,15 @@ phina.namespace(() => {
         this.instances[i].updateAttributes(this.array);
       }
 
-      drawable.uniforms["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
-      drawable.uniforms["texture"].setValue(1).setTexture(this.texture);
+      const uni = drawable.uniforms;
+      uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
+      uni["texture"].setValue(0).setTexture(this.texture);
+      uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+      for (let i = 0; i < 10; i++) {
+        uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
+        uni[`lightPower[${i}]`].setValue(lightPower);
+        uni[`lightPosition[${i}]`].setValue(pos[i]);
+      }
 
       drawable.setInstanceAttributeData(this.array);
       drawable.draw(this.max);
@@ -1899,8 +2142,12 @@ phina.namespace(() => {
         this.instanceIndex = this.spriteArray.indexPool.shift();
       }
       this.uvMatrix = Matrix33();
+      this.uvMatrixN = Matrix33();
+      this.uvMatrixE = Matrix33();
 
       this.setImage(params.image);
+      this.setNormalMap(params.normalMap);
+      this.setEmissionMap(params.emissionMap);
 
       this.spriteArray.instances.push(this);
 
@@ -1928,6 +2175,46 @@ phina.namespace(() => {
 
       this.width = f.w;
       this.height = f.h;
+    },
+
+    setNormalMap: function (image) {
+      const frame = this.spriteArray.atlas.getFrameByName(image);
+      const imgW = this.spriteArray.image.domElement.width;
+      const imgH = this.spriteArray.image.domElement.height;
+
+      const f = frame.frame;
+      const texX = f.x;
+      const texY = f.y;
+      const texW = f.w;
+      const texH = f.h;
+
+      const uvm = this.uvMatrixN;
+      uvm.m00 = texW / imgW;
+      uvm.m01 = 0;
+      uvm.m10 = 0;
+      uvm.m11 = texH / imgH;
+      uvm.m02 = texX / imgW;
+      uvm.m12 = texY / imgH;
+    },
+
+    setEmissionMap: function (image) {
+      const frame = this.spriteArray.atlas.getFrameByName(image);
+      const imgW = this.spriteArray.image.domElement.width;
+      const imgH = this.spriteArray.image.domElement.height;
+
+      const f = frame.frame;
+      const texX = f.x;
+      const texY = f.y;
+      const texW = f.w;
+      const texH = f.h;
+
+      const uvm = this.uvMatrixE;
+      uvm.m00 = texW / imgW;
+      uvm.m01 = 0;
+      uvm.m10 = 0;
+      uvm.m11 = texH / imgH;
+      uvm.m02 = texX / imgW;
+      uvm.m12 = texY / imgH;
     },
 
     setZ: function (v) {
@@ -1960,47 +2247,272 @@ phina.namespace(() => {
 
       const idx = this.instanceIndex;
       const uvm = this.uvMatrix;
+      const uvmN = this.uvMatrixN;
+      const uvmE = this.uvMatrixE;
       const m = this._worldMatrix;
 
-      const size = 21;
+      const size = 30;
 
       // active
-      array[idx * size + 0] = (this.parent && this.visible) ? 1 : 0;
+      array[idx * size + 23] = (this.parent && this.visible) ? 1 : 0;
       if (this.parent && this.visible) {
         // uv matrix
-        array[idx * size + 1] = uvm.m00;
-        array[idx * size + 2] = uvm.m10;
-        array[idx * size + 3] = uvm.m01;
-        array[idx * size + 4] = uvm.m11;
-        array[idx * size + 5] = uvm.m02;
-        array[idx * size + 6] = uvm.m12;
+        array[idx * size + 0] = uvm.m00;
+        array[idx * size + 1] = uvm.m10;
+        array[idx * size + 2] = uvm.m01;
+        array[idx * size + 3] = uvm.m11;
+        array[idx * size + 4] = uvm.m02;
+        array[idx * size + 5] = uvm.m12;
+        // uv matrix normal
+        array[idx * size + 6] = uvmN.m00;
+        array[idx * size + 7] = uvmN.m10;
+        array[idx * size + 8] = uvmN.m01;
+        array[idx * size + 9] = uvmN.m11;
+        array[idx * size + 10] = uvmN.m02;
+        array[idx * size + 11] = uvmN.m12;
+        // // uv matrix emission
+        array[idx * size + 12] = uvmE.m00;
+        array[idx * size + 13] = uvmE.m10;
+        array[idx * size + 14] = uvmE.m01;
+        array[idx * size + 15] = uvmE.m11;
+        array[idx * size + 16] = uvmE.m02;
+        array[idx * size + 17] = uvmE.m12;
         // sprite position
-        array[idx * size + 7] = -this.width * this.originX;
-        array[idx * size + 8] = -this.height * this.originY;
-        array[idx * size + 9] = this.z;
+        array[idx * size + 18] = -this.width * this.originX;
+        array[idx * size + 19] = -this.height * this.originY;
+        array[idx * size + 20] = this.z;
         // sprite size
-        array[idx * size + 10] = this.width;
-        array[idx * size + 11] = this.height;
-        // sprite alpha enabled
-        array[idx * size + 12] = this.alphaEnabled ? 1 : 0;
-        // sprite alpha
-        array[idx * size + 13] = this._worldAlpha;
-        // sprite brightness
-        array[idx * size + 14] = this.brightness;
+        array[idx * size + 21] = this.width;
+        array[idx * size + 22] = this.height;
         // camera matrix
-        array[idx * size + 15] = m.m00;
-        array[idx * size + 16] = m.m10;
-        array[idx * size + 17] = m.m01;
-        array[idx * size + 18] = m.m11;
-        array[idx * size + 19] = m.m02;
-        array[idx * size + 20] = m.m12;
+        array[idx * size + 24] = m.m00;
+        array[idx * size + 25] = m.m10;
+        array[idx * size + 26] = m.m01;
+        array[idx * size + 27] = m.m11;
+        array[idx * size + 28] = m.m02;
+        array[idx * size + 29] = m.m12;
       }
     },
 
     _static: {
       defaults: {
         alphaEnabled: false,
+        normalMap: "no_normal.png",
+        emissionMap: "black.png"
+      },
+    },
+  });
+
+});
+
+phina.namespace(() => {
+
+  phina.define("GLTiledMap", {
+    superClass: "DisplayElement",
+
+    z: 0,
+
+    init: function (options) {
+      options = ({}).$extend(GLTiledMap.defaults, options);
+      this.superInit(options);
+
+      this.depthEnabled = options.depthEnabled;
+      this.alphaEnabled = options.alphaEnabled;
+      this.brightness = options.brightness;
+      this.blendMode = options.blendMode;
+
+      const gl = options.gl;
+
+      if (typeof (options.tiledAsset) == "string") {
+        this.tiledAsset = AssetManager.get("tiled", options.tiledAsset);
+      } else {
+        this.tiledAsset = options.tiledAsset;
+      }
+      this.layer = options.layer;
+
+      const tilesets = this.tiledAsset.tilesets;
+      this.textures = tilesets.map(ts => phigl.Texture(gl, ts.image));
+      this.normalMaps = tilesets.map(ts => phigl.Texture(gl, ts.normalImage));
+
+      const cols = this.tiledAsset.json.width;
+      const rows = this.tiledAsset.json.height;
+      this.tilewidth = this.tiledAsset.json.tilewidth;
+      this.tileheight = this.tiledAsset.json.tileheight;
+
+      this.width = cols * this.tilewidth;
+      this.height = rows * this.tileheight;
+      this.originX = 0;
+      this.originY = 0;
+
+      const data = this.tiledAsset.json.layers[this.layer].data;
+
+      const indices = [];
+      const positions = [];
+      const textureIndices = [];
+      const uvs = [];
+      tilesets.push({ firstgid: Number.MAX_VALUE });
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const idx = y * cols + x;
+          const cell = data[idx];
+
+          if (cell == 0) continue;
+
+          const textureIndex = tilesets.indexOf(tilesets.find(ts => cell < ts.firstgid)) - 1;
+          const uv = tilesets[textureIndex].calcUv(cell);
+
+          indices.push(
+            idx * 4 + 0,
+            idx * 4 + 1,
+            idx * 4 + 2,
+            idx * 4 + 1,
+            idx * 4 + 3,
+            idx * 4 + 2,
+          );
+          positions.push(
+            x + 0, y + 1,
+            x + 1, y + 1,
+            x + 0, y + 0,
+            x + 1, y + 0,
+          );
+          textureIndices.push(
+            textureIndex,
+            textureIndex,
+            textureIndex,
+            textureIndex,
+          );
+          uvs.push(...uv);
+        }
+      }
+      tilesets.pop();
+
+      if (GLTiledMap.program == null) {
+        GLTiledMap.program = phigl.Program(gl)
+          .attach("gltiledmap.vs")
+          .attach("gltiledmap.fs")
+          .link();
+      }
+      this.drawable = phigl.Drawable(gl)
+        .setProgram(GLTiledMap.program)
+        .setIndexValues(indices)
+        .declareAttributes("position", "uv", "textureIndex")
+        .setAttributeDataArray([{
+          unitSize: 2,
+          data: positions,
+        }, {
+          unitSize: 2,
+          data: uvs,
+        }, {
+          unitSize: 1,
+          data: textureIndices,
+        }])
+        .createVao()
+        .declareUniforms(
+          "instanceActive",
+          "instancePosition",
+          "instanceSize",
+          "instanceAlphaEnabled",
+          "instanceAlpha",
+          "instanceBrightness",
+          "cameraMatrix0",
+          "cameraMatrix1",
+          "cameraMatrix2",
+          "screenSize",
+          "texture",
+          "texture_n",
+          "ambientColor",
+          "lightColor",
+          "lightPower",
+          "lightPosition",
+        );
+    },
+
+    setZ: function (v) {
+      this.z = v;
+      return this;
+    },
+
+    draw: function (gl) {
+      const drawable = this.drawable;
+
+      if (this.depthEnabled) {
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+      } else {
+        gl.disable(gl.DEPTH_TEST);
+      }
+
+      if (this.blendMode === "source-over") {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      } else if (this.options.blendMode === "lighter") {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+      } else {
+        gl.disable(gl.BLEND);
+      }
+
+      const m = this._worldMatrix;
+      const uni = drawable.uniforms;
+      uni["instanceActive"].setValue((this.parent && this.visible) ? 1 : 0);
+      if (this.parent && this.visible) {
+        uni["instancePosition"].setValue([-this.width * this.originX, -this.height * this.originY, this.z]);
+        uni["instanceSize"].setValue([this.tilewidth, this.tileheight]);
+        uni["instanceAlphaEnabled"].setValue(this.alphaEnabled ? 1 : 0);
+        uni["instanceAlpha"].setValue(this._worldAlpha);
+        uni["instanceBrightness"].setValue(this.brightness);
+        uni["cameraMatrix0"].setValue([m.m00, m.m10]);
+        uni["cameraMatrix1"].setValue([m.m01, m.m11]);
+        uni["cameraMatrix2"].setValue([m.m02, m.m12]);
+        uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
+        for (let i = 0, len = this.textures.length; i < len; i++) {
+          uni[`texture[${i}]`].setValue(i).setTexture(this.textures[i]);
+        }
+        for (let i = 0, len = this.normalMaps.length; i < len; i++) {
+          uni[`texture_n[${i}]`].setValue(8 + i).setTexture(this.normalMaps[i]);
+        }
+        uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+        for (let i = 0; i < 10; i++) {
+          uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
+          uni[`lightPower[${i}]`].setValue(lightPower);
+          uni[`lightPosition[${i}]`].setValue(pos[i]);
+        }
+      }
+
+      drawable.draw();
+    },
+
+    _static: {
+      defaults: {
+        layer: 0,
+        depthEnabled: true,
+        blendMode: "source-over",
+        alphaEnabled: false,
         brightness: 1.0,
+      },
+      program: null,
+    }
+  });
+
+});
+
+phina.namespace(() => {
+
+  phina.define("TextureAsset", {
+    _static: {
+      get: function (gl, name) {
+        const AssetManager = phina.asset.AssetManager;
+
+        if (AssetManager.get("texture", name) == null) {
+          const img = AssetManager.get("image", name);
+          if (img == null) {
+            console.log("ないよ " + name);
+            return;
+          }
+          AssetManager.set("texture", name, phigl.Texture(gl, img));
+        }
+
+        return AssetManager.get("texture", name);
       },
     },
   });

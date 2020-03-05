@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <script src="../_bundle/lib/phina.js"></script>
+  <script>
+    phina.globalize();
+    phina.main(() => {
+
+      phina.GameApp({
+        startLabel: "main",
+      }).run();
+
+    });
+
+    phina.define("MainScene", {
+      superClass: "DisplayScene",
+
+      init: function() {
+
+      },
+    });
+  </script>
+</body>
+
+</html>

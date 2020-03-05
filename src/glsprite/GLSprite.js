@@ -10,6 +10,7 @@ phina.namespace(() => {
       this.instances = [];
 
       this.atlas = phina.asset.AssetManager.get("atlas", atlas);
+
       this.image = this.atlas.images[Object.keys(this.atlas.images)[0]];
       this.texture = phigl.Texture(gl, this.image);
       this.max = max;
@@ -25,19 +26,14 @@ phina.namespace(() => {
           .attach("glsprite.fs")
           .link();
 
+        console.log("drawable start");
+
         GLSpriteArray.drawable = phigl.InstancedDrawable(gl, ext)
           .setProgram(program)
           .setIndexValues([0, 1, 2, 1, 3, 2])
-          .declareAttributes("position", "uv")
+          .declareAttributes("posuv")
           .setAttributeDataArray([{
-            unitSize: 2,
-            data: [
-              0, 1,
-              1, 1,
-              0, 0,
-              1, 0,
-            ]
-          }, {
+            // position, uv
             unitSize: 2,
             data: [
               0, 1,
@@ -48,41 +44,48 @@ phina.namespace(() => {
           },])
           .createVao()
           .declareInstanceAttributes(
-            "instanceActive",
             "instanceUvMatrix0",
             "instanceUvMatrix1",
-            "instanceUvMatrix2",
+            "instanceUvMatrixN0",
+            "instanceUvMatrixN1",
+            "instanceUvMatrixE0",
+            "instanceUvMatrixE1",
             "instancePosition",
             "instanceSize",
-            "instanceAlphaEnabled",
-            "instanceAlpha",
-            "instanceBrightness",
             "cameraMatrix0",
             "cameraMatrix1",
-            "cameraMatrix2",
           )
-          .declareUniforms("screenSize", "texture");
+          .declareUniforms(
+            "screenSize",
+            "texture",
+            "ambientColor",
+            "lightColor",
+            "lightPower",
+            "lightPosition",
+          );
+
+        console.log("drawable ok");
       }
 
       this.array = [];
       for (let i = 0; i < max; i++) {
         this.array.push(...[
-          // active
-          0,
           // uv matrix
+          1, 0,
+          0, 1,
+          0, 0,
+          // uv matrix normal
+          1, 0,
+          0, 1,
+          0, 0,
+          // // uv matrix emission
           1, 0,
           0, 1,
           0, 0,
           // sprite position
           0, 0, 0,
-          // sprite size
-          0, 0,
-          // sprite alpha enabled
-          0,
-          // sprite alpha
-          1,
-          // sprite brightness
-          1,
+          // sprite size ( + active)
+          0, 0, 0,
           // camera matrix
           1, 0,
           0, 1,
@@ -115,8 +118,15 @@ phina.namespace(() => {
         this.instances[i].updateAttributes(this.array);
       }
 
-      drawable.uniforms["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
-      drawable.uniforms["texture"].setValue(1).setTexture(this.texture);
+      const uni = drawable.uniforms;
+      uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
+      uni["texture"].setValue(0).setTexture(this.texture);
+      uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+      for (let i = 0; i < 10; i++) {
+        uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
+        uni[`lightPower[${i}]`].setValue(lightPower);
+        uni[`lightPosition[${i}]`].setValue(pos[i]);
+      }
 
       drawable.setInstanceAttributeData(this.array);
       drawable.draw(this.max);
@@ -151,8 +161,12 @@ phina.namespace(() => {
         this.instanceIndex = this.spriteArray.indexPool.shift();
       }
       this.uvMatrix = Matrix33();
+      this.uvMatrixN = Matrix33();
+      this.uvMatrixE = Matrix33();
 
       this.setImage(params.image);
+      this.setNormalMap(params.normalMap);
+      this.setEmissionMap(params.emissionMap);
 
       this.spriteArray.instances.push(this);
 
@@ -180,6 +194,46 @@ phina.namespace(() => {
 
       this.width = f.w;
       this.height = f.h;
+    },
+
+    setNormalMap: function (image) {
+      const frame = this.spriteArray.atlas.getFrameByName(image);
+      const imgW = this.spriteArray.image.domElement.width;
+      const imgH = this.spriteArray.image.domElement.height;
+
+      const f = frame.frame;
+      const texX = f.x;
+      const texY = f.y;
+      const texW = f.w;
+      const texH = f.h;
+
+      const uvm = this.uvMatrixN;
+      uvm.m00 = texW / imgW;
+      uvm.m01 = 0;
+      uvm.m10 = 0;
+      uvm.m11 = texH / imgH;
+      uvm.m02 = texX / imgW;
+      uvm.m12 = texY / imgH;
+    },
+
+    setEmissionMap: function (image) {
+      const frame = this.spriteArray.atlas.getFrameByName(image);
+      const imgW = this.spriteArray.image.domElement.width;
+      const imgH = this.spriteArray.image.domElement.height;
+
+      const f = frame.frame;
+      const texX = f.x;
+      const texY = f.y;
+      const texW = f.w;
+      const texH = f.h;
+
+      const uvm = this.uvMatrixE;
+      uvm.m00 = texW / imgW;
+      uvm.m01 = 0;
+      uvm.m10 = 0;
+      uvm.m11 = texH / imgH;
+      uvm.m02 = texX / imgW;
+      uvm.m12 = texY / imgH;
     },
 
     setZ: function (v) {
@@ -212,47 +266,58 @@ phina.namespace(() => {
 
       const idx = this.instanceIndex;
       const uvm = this.uvMatrix;
+      const uvmN = this.uvMatrixN;
+      const uvmE = this.uvMatrixE;
       const m = this._worldMatrix;
 
-      const size = 21;
+      const size = 30;
 
       // active
-      array[idx * size + 0] = (this.parent && this.visible) ? 1 : 0;
+      array[idx * size + 23] = (this.parent && this.visible) ? 1 : 0;
       if (this.parent && this.visible) {
         // uv matrix
-        array[idx * size + 1] = uvm.m00;
-        array[idx * size + 2] = uvm.m10;
-        array[idx * size + 3] = uvm.m01;
-        array[idx * size + 4] = uvm.m11;
-        array[idx * size + 5] = uvm.m02;
-        array[idx * size + 6] = uvm.m12;
+        array[idx * size + 0] = uvm.m00;
+        array[idx * size + 1] = uvm.m10;
+        array[idx * size + 2] = uvm.m01;
+        array[idx * size + 3] = uvm.m11;
+        array[idx * size + 4] = uvm.m02;
+        array[idx * size + 5] = uvm.m12;
+        // uv matrix normal
+        array[idx * size + 6] = uvmN.m00;
+        array[idx * size + 7] = uvmN.m10;
+        array[idx * size + 8] = uvmN.m01;
+        array[idx * size + 9] = uvmN.m11;
+        array[idx * size + 10] = uvmN.m02;
+        array[idx * size + 11] = uvmN.m12;
+        // // uv matrix emission
+        array[idx * size + 12] = uvmE.m00;
+        array[idx * size + 13] = uvmE.m10;
+        array[idx * size + 14] = uvmE.m01;
+        array[idx * size + 15] = uvmE.m11;
+        array[idx * size + 16] = uvmE.m02;
+        array[idx * size + 17] = uvmE.m12;
         // sprite position
-        array[idx * size + 7] = -this.width * this.originX;
-        array[idx * size + 8] = -this.height * this.originY;
-        array[idx * size + 9] = this.z;
+        array[idx * size + 18] = -this.width * this.originX;
+        array[idx * size + 19] = -this.height * this.originY;
+        array[idx * size + 20] = this.z;
         // sprite size
-        array[idx * size + 10] = this.width;
-        array[idx * size + 11] = this.height;
-        // sprite alpha enabled
-        array[idx * size + 12] = this.alphaEnabled ? 1 : 0;
-        // sprite alpha
-        array[idx * size + 13] = this._worldAlpha;
-        // sprite brightness
-        array[idx * size + 14] = this.brightness;
+        array[idx * size + 21] = this.width;
+        array[idx * size + 22] = this.height;
         // camera matrix
-        array[idx * size + 15] = m.m00;
-        array[idx * size + 16] = m.m10;
-        array[idx * size + 17] = m.m01;
-        array[idx * size + 18] = m.m11;
-        array[idx * size + 19] = m.m02;
-        array[idx * size + 20] = m.m12;
+        array[idx * size + 24] = m.m00;
+        array[idx * size + 25] = m.m10;
+        array[idx * size + 26] = m.m01;
+        array[idx * size + 27] = m.m11;
+        array[idx * size + 28] = m.m02;
+        array[idx * size + 29] = m.m12;
       }
     },
 
     _static: {
       defaults: {
         alphaEnabled: false,
-        brightness: 1.0,
+        normalMap: "no_normal.png",
+        emissionMap: "black.png"
       },
     },
   });

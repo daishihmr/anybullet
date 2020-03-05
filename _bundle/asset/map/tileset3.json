@@ -1,0 +1,15 @@
+{ "columns":30,
+ "image":"..\/..\/..\/asset_raw\/old_sozai\/\u7d20\u6750\/2000\u30fb2003\/\u30de\u30c3\u30d7\u30c1\u30c3\u30d7\/rpg2000\/bar.png",
+ "imageheight":256,
+ "imagewidth":480,
+ "margin":0,
+ "name":"tileset3",
+ "spacing":0,
+ "tilecount":480,
+ "tiledversion":"1.3.1",
+ "tileheight":16,
+ "tilewidth":16,
+ "transparentcolor":"#007575",
+ "type":"tileset",
+ "version":1.2
+}

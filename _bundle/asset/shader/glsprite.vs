@@ -1,48 +1,48 @@
-attribute vec2 position;
-attribute vec2 uv;
+attribute vec2 posuv;
 
-attribute float instanceActive;
-attribute vec2 instanceUvMatrix0;
-attribute vec2 instanceUvMatrix1;
-attribute vec2 instanceUvMatrix2;
+attribute vec3 instanceUvMatrix0;
+attribute vec3 instanceUvMatrix1;
+attribute vec3 instanceUvMatrixN0;
+attribute vec3 instanceUvMatrixN1;
+attribute vec3 instanceUvMatrixE0;
+attribute vec3 instanceUvMatrixE1;
 attribute vec3 instancePosition;
-attribute vec2 instanceSize;
-attribute float instanceAlphaEnabled;
-attribute float instanceAlpha;
-attribute float instanceBrightness;
-attribute vec2 cameraMatrix0;
-attribute vec2 cameraMatrix1;
-attribute vec2 cameraMatrix2;
+attribute vec3 instanceSize;
+attribute vec3 cameraMatrix0;
+attribute vec3 cameraMatrix1;
 
 uniform vec2 screenSize;
 
-varying float vBrightness;
-varying float vAlphaEnabled;
-varying float vAlpha;
-varying vec2 vUv;
+varying vec4 v0; // vec2 position + vec2 uv
+varying vec4 v1; // vec2 uvn + vec2 uve
 
 void main(void) {
+  float instanceActive = instanceSize.z;
   if (instanceActive == 0.0) {
-    vAlphaEnabled = 0.0;
-    vAlpha = 0.0;
-    vBrightness = 0.0;
-    vUv = uv;
+    v0 = vec4(0.0);
+    v1 = vec4(0.0);
     gl_Position = vec4(0.0);
   } else {
-    vAlphaEnabled = instanceAlphaEnabled;
-    vAlpha = instanceAlpha;
-    vBrightness = instanceBrightness;
     mat3 uvm = mat3(
-      vec3(instanceUvMatrix0, 0.0),
-      vec3(instanceUvMatrix1, 0.0),
-      vec3(instanceUvMatrix2, 1.0)
+      vec3(instanceUvMatrix0.xy, 0.0),
+      vec3(instanceUvMatrix0.z, instanceUvMatrix1.x, 0.0),
+      vec3(instanceUvMatrix1.yz, 1.0)
     );
-    vUv = (uvm * vec3(uv, 1.0)).xy;
+    mat3 uvmN = mat3(
+      vec3(instanceUvMatrixN0.xy, 0.0),
+      vec3(instanceUvMatrixN0.z, instanceUvMatrixN1.x, 0.0),
+      vec3(instanceUvMatrixN1.yz, 1.0)
+    );
+    mat3 uvmE = mat3(
+      vec3(instanceUvMatrixE0.xy, 0.0),
+      vec3(instanceUvMatrixE0.z, instanceUvMatrixE1.x, 0.0),
+      vec3(instanceUvMatrixE1.yz, 1.0)
+    );
 
     mat3 cameraMatrix = mat3(
-      vec3(cameraMatrix0, 0.0),
-      vec3(cameraMatrix1, 0.0),
-      vec3(cameraMatrix2, 1.0)
+      vec3(cameraMatrix0.xy, 0.0),
+      vec3(cameraMatrix0.z, cameraMatrix1.x, 0.0),
+      vec3(cameraMatrix1.yz, 1.0)
     );
 
     mat3 m = mat3(
@@ -55,9 +55,20 @@ void main(void) {
       0.0, 0.0, 1.0
     );
 
-    vec3 p = cameraMatrix * m * vec3(position, 1.0);
-    vec3 p2 = (p + vec3(-screenSize.x * 0.5, -screenSize.y * 0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), -1.0 / (screenSize.y * 0.5), 0.0);
-    p2.z = instancePosition.z * -0.001;
-    gl_Position = vec4(p2, 1.0);
+    // ワールド座標
+    vec3 worldPosition = cameraMatrix * m * vec3(posuv, 1.0);
+    vec2 vPosition = worldPosition.xy;
+
+    vec2 vUv = (uvm * vec3(posuv, 1.0)).xy;
+    vec2 vUvN = (uvmN * vec3(posuv, 1.0)).xy;
+    vec2 vUvE = (uvmE * vec3(posuv, 1.0)).xy;
+
+    v0 = vec4(vPosition, vUv);
+    v1 = vec4(vUvN, vUvE);
+
+    // スクリーン座標
+    vec3 screenPosition = (worldPosition + vec3(-screenSize.x * 0.5, -screenSize.y * 0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), -1.0 / (screenSize.y * 0.5), 0.0);
+    screenPosition.z = instancePosition.z * -0.001;
+    gl_Position = vec4(screenPosition, 1.0);
   }
 }

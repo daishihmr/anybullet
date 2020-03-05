@@ -94,14 +94,14 @@ phina.namespace(() => {
         .clear()
         .set({
           visible: true,
-          x: CANVAS_WIDTH * 0.5,
-          y: CANVAS_HEIGHT * 1.2,
+          x: SCREEN_X + SCREEN_W * 0.2,
+          y: SCREEN_Y + SCREEN_H * 1.2,
           controllable: false,
           muteki: true,
         })
         .wait(1000)
         .to({
-          y: CANVAS_HEIGHT * 0.9,
+          y: SCREEN_Y + SCREEN_H * 0.9,
         }, 800, "easeOutBack")
         .set({
           controllable: true,

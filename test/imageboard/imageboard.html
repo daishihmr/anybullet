@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <script src="../../_bundle/lib/phina.js"></script>
+  <script src="../../_bundle/lib/phina.atlas.js"></script>
+  <script src="../../_bundle/lib/phigl.js"></script>
+  <script src="../../_bundle/lib/bulletml.js"></script>
+  <script src="../../_bundle/lib/daicol.js"></script>
+  <script>phina.globalize()</script>
+  <script src="../../src/glsprite/GLApp.js"></script>
+  <script src="../../src/glsprite/GLAppRenderer.js"></script>
+  <script src="../../src/glsprite/GLLoadingScene.js"></script>
+  <script src="../../src/glsprite/GLScene.js"></script>
+  <script src="../../src/glsprite/TextureAsset.js"></script>
+  <script src="../../src/glsprite/GLSingleSprite.js"></script>
+  <script src="../../src/glsprite/GLSprite.js"></script>
+  <script src="../../src/TiledAsset.js"></script>
+  <script src="../../src/glsprite/GLTiledMap.js"></script>
+  <script src="../../src/GLInitScene.js"></script>
+  <script>
+    const CANVAS_WIDTH = 1024;
+    const CANVAS_HEIGHT = 512;
+    const SCREEN_X = 114;
+    const SCREEN_Y = 0;
+    const SCREEN_W = CANVAS_WIDTH - SCREEN_X * 2;
+    const SCREEN_H = 512;
+
+    const lightPower = 3000;
+    const pos = [];
+    for (let i = 0; i < 10; i++) {
+      pos[i] = [
+        Random.randint(SCREEN_X, SCREEN_X + SCREEN_W),
+        Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H),
+        50,
+      ];
+    }
+
+    phina.main(() => {
+      const app = GLApp({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+      
+      const gl = app.gl;
+      window.gl = gl;
+      console.log("MAX_VERTEX_ATTRIBS = " + gl.getParameter(gl.MAX_VERTEX_ATTRIBS));
+      console.log("MAX_VARYING_VECTORS = " + gl.getParameter(gl.MAX_VARYING_VECTORS));
+
+      app.replaceScene(ManagerScene({
+        scenes: [{
+          label: "loading",
+          className: "GLLoadingScene",
+          arguments: {
+            assets: {
+              atlas: {
+                "sprite": "./sprite.json",
+              },
+              image: {
+                "black": "../../_bundle/asset/image/black.png",
+                "no_normal": "../../_bundle/asset/image/no_normal.png",
+                "zombie1": "./zombie1.png",
+                "zombie2": "./zombie2.png",
+                "zombie3": "./zombie3.png",
+                "zombie4": "./zombie4.png",
+                "zombie1_e": "./zombie1_e.png",
+                "zombie2_e": "./zombie2_e.png",
+                "zombie3_e": "./zombie3_e.png",
+                "zombie4_e": "./zombie4_e.png",
+                "zombie1_n": "./zombie1_n.png",
+                "zombie2_n": "./zombie2_n.png",
+                "zombie3_n": "./zombie3_n.png",
+                "zombie4_n": "./zombie4_n.png",
+              },
+              vertexShader: {
+                "glsprite.vs": "../../_bundle/asset/shader/glsprite.vs",
+                "glsinglesprite.vs": "../../_bundle/asset/shader/glsinglesprite.vs",
+                "gltiledmap.vs": "../../_bundle/asset/shader/gltiledmap.vs",
+              },
+              fragmentShader: {
+                "glsprite.fs": "../../_bundle/asset/shader/glsprite.fs",
+                "glsinglesprite.fs": "../../_bundle/asset/shader/glsinglesprite.fs",
+                "gltiledmap.fs": "../../_bundle/asset/shader/gltiledmap.fs",
+                "lighting_uniform.fs": "../../_bundle/asset/shader/lighting_uniform.fs",
+                "lighting.fs": "../../_bundle/asset/shader/lighting.fs",
+              },
+              tiled: {
+                "testmap": "./mapchip/testmap.json",
+              },
+            },
+          },
+        }, {
+          //   label: "test",
+          //   className: "TestScene",
+          //   arguments: { app },
+          // }, {
+          label: "glinit",
+          className: "GLInitScene",
+          arguments: {
+            app,
+            spriteArray: {
+              sprite: { atlas: "sprite", max: 1000 },
+            },
+          },
+        }, {
+          label: "main",
+          className: "ImageBoardScene",
+          arguments: { app },
+        }],
+      }));
+      app.run();
+      window.gl = app.gl;
+    });
+
+    phina.define("TestScene", {
+      superClass: "Scene",
+
+      init: function (options) {
+        this.superInit(options);
+        const gl = options.app.gl;
+
+        console.log("try")
+        phigl.Program(gl)
+          .attach("glsprite.vs")
+          .attach("glsprite.fs")
+          .link();
+        console.log("success")
+      },
+    });
+
+    phina.define("ImageBoardScene", {
+      superClass: "GLScene",
+
+      init: function (params) {
+        this.superInit(params);
+
+        const gl = params.app.gl;
+        const renderer = params.app.renderer;
+        const spriteArray = renderer.getSpriteArray("sprite");
+
+        GLSprite({ spriteArray, image: "black.png" })
+          .setOrigin(0, 0)
+          .setPosition(0, 0)
+          .setScale(SCREEN_X / 16, SCREEN_H / 16)
+          .setZ(100)
+          .addChildTo(this);
+        GLSprite({ spriteArray, image: "black.png" })
+          .setOrigin(1, 1)
+          .setPosition(CANVAS_WIDTH, CANVAS_HEIGHT)
+          .setScale(SCREEN_X / 16, SCREEN_H / 16)
+          .setZ(100)
+          .addChildTo(this);
+
+        GLTiledMap({ gl, tiledAsset: "testmap" })
+          .setPosition(SCREEN_X, SCREEN_Y)
+          .addChildTo(this);
+
+        const z = GLSprite({ spriteArray, image: "mech.png", normalMap: "mech_n.png" })
+          .setPosition(256, 256)
+          .setOrigin(0.5, 1)
+          .addChildTo(this);
+        z.on("enterframe", e => {
+          const kb = e.app.keyboard;
+          const v = kb.getKeyDirection();
+          if (v.length() > 0.5) {
+            z.position.add(v.mul(4));
+          }
+          pos[0][0] = z.x;
+          pos[0][1] = z.y - 64;
+          z.z = 40 + z.y / SCREEN_H;
+        });
+
+        for (let i = 0; i < 40; i++) {
+          let y;
+          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
+          Zombie({ spriteArray, image: "zombie1.png", normalMap: "zombie1_n.png", emissionMap: "zombie1_e.png" })
+            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
+            .addChildTo(this);
+          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
+          Zombie({ spriteArray, image: "zombie2.png", normalMap: "zombie2_n.png", emissionMap: "zombie2_e.png" })
+            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
+            .addChildTo(this);
+          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
+          Zombie({ spriteArray, image: "zombie3.png", normalMap: "zombie3_n.png", emissionMap: "zombie3_e.png" })
+            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
+            .addChildTo(this);
+          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
+          Zombie({ spriteArray, image: "zombie4.png", normalMap: "zombie4_n.png", emissionMap: "zombie4_e.png" })
+            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
+            .addChildTo(this);
+        }
+      },
+    });
+
+    phina.define("Zombie", {
+      superClass: "GLSprite",
+      init: function (options) {
+        this.superInit(options);
+        this.setOrigin(0.5, 1);
+      },
+      update: function () {
+        this.z = 40 + this.y / SCREEN_H;
+      },
+    })
+  </script>
+</body>
+
+</html>

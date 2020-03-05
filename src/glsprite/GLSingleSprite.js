@@ -1,5 +1,4 @@
 phina.namespace(() => {
-
   /**
    * インスタンシングを使わないやつ
    */
@@ -13,13 +12,15 @@ phina.namespace(() => {
       options = ({}).$extend(GLSingleSprite.defaults, options);
       this.superInit(options);
 
+      let image = null;
       if (typeof (options.image) == "string") {
-        this.image = AssetManager.get("image", options.image);
+        image = AssetManager.get("image", options.image);
       } else {
-        this.image = options.image;
+        image = options.image;
       }
-      this.width = this.image.domElement.width;
-      this.height = this.image.domElement.height;
+
+      this.width = image.domElement.width;
+      this.height = image.domElement.height;
 
       this.depthEnabled = options.depthEnabled;
       this.blendMode = options.blendMode;
@@ -27,7 +28,21 @@ phina.namespace(() => {
       this.brightness = options.brightness;
 
       const gl = options.gl;
-      this.texture = phigl.Texture(gl, this.image);
+      if (typeof (options.image) == "string") {
+        this.texture = TextureAsset.get(gl, options.image);
+        this.normalMap = TextureAsset.get(gl, options.image + "_n");
+        this.emissionMap = TextureAsset.get(gl, options.image + "_e");
+      } else {
+        this.texture = options.image;
+        this.normalMap = options.normalMap;
+        this.emissionMap = options.emissionMap;
+      }
+      if (this.normalMap == null) {
+        this.normalMap = TextureAsset.get(gl, GLSingleSprite.defaults.normalMap);
+      }
+      if (this.emissionMap == null) {
+        this.emissionMap = TextureAsset.get(gl, GLSingleSprite.defaults.emissionMap);
+      }
 
       if (GLSingleSprite.drawable == null) {
         const program = phigl.Program(gl)
@@ -67,7 +82,13 @@ phina.namespace(() => {
             "cameraMatrix1",
             "cameraMatrix2",
             "screenSize",
-            "texture"
+            "texture",
+            "texture_n",
+            "texture_e",
+            "ambientColor",
+            "lightColor",
+            "lightPower",
+            "lightPosition",
           );
       }
     },
@@ -110,7 +131,15 @@ phina.namespace(() => {
         uni["cameraMatrix1"].setValue([m.m01, m.m11]);
         uni["cameraMatrix2"].setValue([m.m02, m.m12]);
         uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
-        uni["texture"].setValue(1).setTexture(this.texture);
+        uni["texture"].setValue(0).setTexture(this.texture);
+        uni["texture_n"].setValue(1).setTexture(this.normalMap);
+        uni["texture_e"].setValue(2).setTexture(this.emissionMap);
+        uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+        for (let i = 0; i < 10; i++) {
+          uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
+          uni[`lightPower[${i}]`].setValue(lightPower);
+          uni[`lightPosition[${i}]`].setValue(pos[i]);
+        }
       }
 
       drawable.draw();
@@ -122,8 +151,10 @@ phina.namespace(() => {
         blendMode: "source-over",
         alphaEnabled: false,
         brightness: 1.0,
+        normalMap: "no_normal",
+        emissionMap: "black",
       },
-      program: null,
+      drawable: null,
     },
   });
 

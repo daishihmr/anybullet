@@ -20,7 +20,7 @@ phina.namespace(() => {
       this.domElement.height = params.height;
 
       if (params.fit) {
-        this.fitScreen();
+        FitScreen.fit(this.domElement);
       }
 
       this.gl = this.domElement.getContext("webgl");
@@ -33,10 +33,6 @@ phina.namespace(() => {
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.renderer.render(this.currentScene);
       gl.flush();
-    },
-
-    fitScreen: function () {
-      phina.graphics.Canvas.prototype.fitScreen.call(this);
     },
 
     _static: {

@@ -1,8 +1,8 @@
-const CANVAS_WIDTH = 512;
+const CANVAS_WIDTH = 1024;
 const CANVAS_HEIGHT = 512;
-const SCREEN_X = 64;
+const SCREEN_X = 114;
 const SCREEN_Y = 0;
-const SCREEN_W = 384;
+const SCREEN_W = CANVAS_WIDTH - SCREEN_X * 2;
 const SCREEN_H = 512;
 
 phina.main(() => {

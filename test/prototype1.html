@@ -8,21 +8,266 @@
 <body>
   <script src="../_bundle/lib/phina.js"></script>
   <script>
+    const CANVAS_WIDTH = 512 * 16 / 9;
+    const CANVAS_HEIGHT = 512;
+
     phina.globalize();
     phina.main(() => {
 
-      phina.GameApp({
+      const app = GameApp({
         startLabel: "main",
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        backgroundColor: "black",
       }).run();
+
+      app.fps = 60;
 
     });
 
     phina.define("MainScene", {
       superClass: "DisplayScene",
 
-      init: function() {
+      init: function () {
+        this.superInit({
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+          backgroundColor: "black",
+        });
+
+        this.shots = [];
+        this.enemies = [];
+        this.bloodBullets = [];
+        this.bullets = [];
+
+        const player = Player().addChildTo(this);
+        player.on("fire", (e) => {
+          const shot = Shot()
+            .setup(e)
+            .setPosition(player.x, player.y)
+            .addChildTo(this);
+          this.shots.push(shot);
+          shot.on("removed", () => this.shots.erase(shot));
+        });
+
+        const enemy = Enemy()
+          .setup()
+          .setPosition(CANVAS_WIDTH - 100, CANVAS_HEIGHT * 0.5)
+          .addChildTo(this);
+
+        this.enemies.push(enemy);
+        enemy.on("removed", () => this.enemies.erase(enemy));
+        enemy.on("firebullet", (e) => {
+          const bullet = Bullet()
+            .setup(e.$extend({
+              direction: Math.atan2(player.y - enemy.y, player.x - enemy.x) + e.direction.toRadian(),
+              speed: 5,
+              x: enemy.x,
+              y: enemy.y,
+            }))
+            .addChildTo(this);
+          this.bullets.push(bullet);
+          bullet.on("removed", () => this.bullets.erase(bullet));
+        });
+      },
+
+      update: function () {
+        this.hitTestSB();
+        this.hitTestSE();
 
       },
+
+      hitTestSB: function () {
+        const ss = this.shots.clone();
+        const bs = this.bullets.clone();
+        for (let i = 0, sl = ss.length; i < sl; i++) {
+          const s = ss[i];
+          for (let j = 0, bl = bs.length; j < bl; j++) {
+            const b = bs[j];
+
+            if (s.position.distanceSquared(b.position) <= (s.radius + b.radius) ** 2) {
+              s.damage(100);
+              b.damage(1);
+              if (!s.parent) break;
+            }
+          }
+        }
+      },
+
+      hitTestSE: function () {
+        const ss = this.shots.clone();
+        const es = this.enemies.clone();
+        for (let i = 0, sl = ss.length; i < sl; i++) {
+          const s = ss[i];
+          for (let j = 0, el = es.length; j < el; j++) {
+            const e = es[j];
+
+            if (s.position.distanceSquared(e.position) <= (s.radius + e.radius) ** 2) {
+              s.damage(100);
+              e.damage(1);
+              if (!s.parent) break;
+            }
+          }
+        }
+      },
+    });
+
+    phina.define("Player", {
+      superClass: "TriangleShape",
+
+      init: function () {
+        this.superInit({});
+        this.rotation = 90;
+        this.heat = 0;
+        this.x = 10;
+        this.y = CANVAS_HEIGHT * 0.5;
+      },
+
+      update: function (app) {
+        const kb = app.keyboard;
+        const slow = kb.getKey("shift");
+        this.position.add(kb.getKeyDirection().mul(slow ? 4 : 8));
+        if (kb.getKey("z") && this.heat <= 0) {
+          this.flare("fire", {
+            range: slow ? 1 : 10,
+            hp: slow ? 5 : 1,
+          });
+          this.heat = 3;
+        }
+
+        this.heat -= 1;
+      },
+    });
+
+    phina.define("Shot", {
+      superClass: "CircleShape",
+
+      init: function () {
+        this.superInit({
+          radius: 5,
+        });
+        this.hp = 100;
+      },
+
+      setup: function ({ range, hp }) {
+        const direction = Random.randfloat(-range, range).toRadian();
+        this.vx = Math.cos(direction) * 20;
+        this.vy = Math.sin(direction) * 20;
+        this.hp = hp;
+        return this;
+      },
+
+      update: function () {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0 || CANVAS_WIDTH < this.x || this.y < 0 || CANVAS_HEIGHT < this.y) {
+          this.remove();
+        }
+      },
+
+      damage: function (v) {
+        this.hp -= v;
+        if (this.hp <= 0) {
+          this.remove();
+        }
+      },
+    });
+
+    phina.define("Enemy", {
+      superClass: "RectangleShape",
+
+      init: function () {
+        this.superInit({});
+        this.hp = 100;
+      },
+
+      setup: function () {
+        this.tweener
+          .clear()
+          .wait(1000)
+          .call(() => this.attack())
+          .setLoop(true);
+        return this;
+      },
+
+      attack: function () {
+        for (let i = -30; i < 30; i += 10) {
+          this.flare("firebullet", { btype: 0, direction: i });
+        }
+      },
+
+      damage: function (v) {
+        this.hp -= v;
+        if (this.hp <= 0) {
+          this.remove();
+        }
+      },
+
+      update: function () {
+
+      },
+    });
+
+    phina.define("Bullet", {
+      superClass: "CircleShape",
+
+      init: function () {
+        this.superInit({
+          stroke: "red",
+          fill: "white",
+          radius: 5,
+        });
+
+        this.vx = 0;
+        this.vy = 0;
+        this.hp = 0;
+        this.damaged = 1.0;
+
+        this.damageTimer = Tweener().attachTo(this);
+      },
+
+      setup: function ({ x, y, btype, direction, speed }) {
+        if (btype == 0) {
+          this.fill = "red";
+          this.radius = 20;
+          this.hp = 20;
+        } else if (btype == 1) {
+          this.fill = "white";
+          this.radius = 10;
+          this.hp = Infinity;
+        }
+
+        this.x = x;
+        this.y = y;
+        this.vx = Math.cos(direction) * speed;
+        this.vy = Math.sin(direction) * speed;
+        this.damaged = 1.0;
+
+        return this;
+      },
+
+      damage: function (v) {
+        this.hp -= v;
+        if (this.hp <= 0) {
+          this.remove();
+        }
+        this.damaged = 0.2;
+        this.damageTimer
+          .clear()
+          .to({
+            damaged: 1.0
+          }, 500, "easeInQuad");
+      },
+
+      update: function () {
+        this.x += this.vx * this.damaged;
+        this.y += this.vy * this.damaged;
+
+        if (this.x < 0 || CANVAS_WIDTH < this.x || this.y < 0 || CANVAS_HEIGHT < this.y) {
+          this.remove();
+        }
+      }
     });
   </script>
 </body>

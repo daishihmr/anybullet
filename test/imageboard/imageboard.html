@@ -22,6 +22,7 @@
   <script src="../../src/TiledAsset.js"></script>
   <script src="../../src/glsprite/GLTiledMap.js"></script>
   <script src="../../src/GLInitScene.js"></script>
+  <script src="../../src/FitScreen.js"></script>
   <script>
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 512;
@@ -30,7 +31,7 @@
     const SCREEN_W = CANVAS_WIDTH - SCREEN_X * 2;
     const SCREEN_H = 512;
 
-    const lightPower = 3000;
+    const lightPower = 6000;
     const pos = [];
     for (let i = 0; i < 10; i++) {
       pos[i] = [
@@ -60,18 +61,6 @@
               image: {
                 "black": "../../_bundle/asset/image/black.png",
                 "no_normal": "../../_bundle/asset/image/no_normal.png",
-                "zombie1": "./zombie1.png",
-                "zombie2": "./zombie2.png",
-                "zombie3": "./zombie3.png",
-                "zombie4": "./zombie4.png",
-                "zombie1_e": "./zombie1_e.png",
-                "zombie2_e": "./zombie2_e.png",
-                "zombie3_e": "./zombie3_e.png",
-                "zombie4_e": "./zombie4_e.png",
-                "zombie1_n": "./zombie1_n.png",
-                "zombie2_n": "./zombie2_n.png",
-                "zombie3_n": "./zombie3_n.png",
-                "zombie4_n": "./zombie4_n.png",
               },
               vertexShader: {
                 "glsprite.vs": "../../_bundle/asset/shader/glsprite.vs",
@@ -171,22 +160,22 @@
           z.z = 40 + z.y / SCREEN_H;
         });
 
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 3; i++) {
           let y;
           y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "zombie1.png", normalMap: "zombie1_n.png", emissionMap: "zombie1_e.png" })
+          Zombie({ spriteArray, image: "0001.png", normalMap: "0001_n.png", emissionMap: "0001_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
             .addChildTo(this);
           y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "zombie2.png", normalMap: "zombie2_n.png", emissionMap: "zombie2_e.png" })
+          Zombie({ spriteArray, image: "0005.png", normalMap: "0005_n.png", emissionMap: "0005_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
             .addChildTo(this);
           y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "zombie3.png", normalMap: "zombie3_n.png", emissionMap: "zombie3_e.png" })
+          Zombie({ spriteArray, image: "0020.png", normalMap: "0020_n.png", emissionMap: "0020_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
             .addChildTo(this);
           y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "zombie4.png", normalMap: "zombie4_n.png", emissionMap: "zombie4_e.png" })
+          Zombie({ spriteArray, image: "0031.png", normalMap: "0031_n.png", emissionMap: "0031_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
             .addChildTo(this);
         }

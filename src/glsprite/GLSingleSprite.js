@@ -98,10 +98,10 @@ phina.namespace(() => {
       return this;
     },
 
-    draw: function (gl) {
+    draw: function (gl, lighting) {
       const drawable = GLSingleSprite.drawable;
 
-      if (this.depthEnabled) {
+      if (this.blendMode === "source-over") {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
       } else {
@@ -111,11 +111,9 @@ phina.namespace(() => {
       if (this.blendMode === "source-over") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else if (this.options.blendMode === "lighter") {
+      } else {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
-      } else {
-        gl.disable(gl.BLEND);
       }
 
       const m = this._worldMatrix;
@@ -124,9 +122,6 @@ phina.namespace(() => {
       if (this.parent && this.visible) {
         uni["instancePosition"].setValue([-this.width * this.originX, -this.height * this.originY, this.z]);
         uni["instanceSize"].setValue([this.width, this.height]);
-        uni["instanceAlphaEnabled"].setValue(this.alphaEnabled ? 1 : 0);
-        uni["instanceAlpha"].setValue(this._worldAlpha);
-        uni["instanceBrightness"].setValue(this.brightness);
         uni["cameraMatrix0"].setValue([m.m00, m.m10]);
         uni["cameraMatrix1"].setValue([m.m01, m.m11]);
         uni["cameraMatrix2"].setValue([m.m02, m.m12]);
@@ -134,12 +129,10 @@ phina.namespace(() => {
         uni["texture"].setValue(0).setTexture(this.texture);
         uni["texture_n"].setValue(1).setTexture(this.normalMap);
         uni["texture_e"].setValue(2).setTexture(this.emissionMap);
-        uni["ambientColor"].setValue(ambientColor);
-        for (let i = 0; i < 10; i++) {
-          uni[`lightColor[${i}]`].setValue(lightColor[i]);
-          uni[`lightPower[${i}]`].setValue(lightPower[i]);
-          uni[`lightPosition[${i}]`].setValue(pos[i]);
-        }
+        uni["alphaEnabled"].setValue(this.alphaEnabled ? 1 : 0);
+        uni["alpha"].setValue(this._worldAlpha);
+        uni["brightness"].setValue(this.brightness);
+        lighting.set(drawable);
       }
 
       drawable.draw();

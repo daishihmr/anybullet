@@ -4,8 +4,6 @@ attribute vec2 uv;
 uniform float instanceActive;
 uniform vec3 instancePosition;
 uniform vec2 instanceSize;
-uniform float instanceAlphaEnabled;
-uniform float instanceAlpha;
 uniform float instanceBrightness;
 uniform vec2 cameraMatrix0;
 uniform vec2 cameraMatrix1;
@@ -13,22 +11,13 @@ uniform vec2 cameraMatrix2;
 uniform vec2 screenSize;
 
 varying vec3 vPosition;
-varying float vBrightness;
-varying float vAlphaEnabled;
-varying float vAlpha;
 varying vec2 vUv;
 
 void main(void) {
   if (instanceActive == 0.0) {
-    vAlphaEnabled = 0.0;
-    vAlpha = 0.0;
-    vBrightness = 0.0;
     vUv = uv;
     gl_Position = vec4(0.0);
   } else {
-    vAlphaEnabled = instanceAlphaEnabled;
-    vAlpha = instanceAlpha;
-    vBrightness = instanceBrightness;
     vUv = uv;
 
     mat3 cameraMatrix = mat3(

@@ -23,6 +23,14 @@
   <script src="../../src/glsprite/GLTiledMap.js"></script>
   <script src="../../src/GLInitScene.js"></script>
   <script src="../../src/FitScreen.js"></script>
+  <script src="../../src/glsprite/Lighting.js"></script>
+  <script src="../../src/glsprite/PointLight.js"></script>
+  <script src="../../src/postprocessing/PostProcessingPass.js"></script>
+  <script src="../../src/postprocessing/StartPass.js"></script>
+  <script src="../../src/postprocessing/Emission.js"></script>
+  <script src="../../src/postprocessing/Add.js"></script>
+  <script src="../../src/postprocessing/Merge.js"></script>
+  <script src="../../src/postprocessing/Blur.js"></script>
   <script>
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 512;
@@ -31,28 +39,9 @@
     const SCREEN_X = (CANVAS_WIDTH - SCREEN_W) / 2;
     const SCREEN_Y = 0;
 
-    const ambientColor = [0.5, 0.5, 0.5, 1];
-    const pos = [];
-    const lightPower = [];
-    const lightColor = [];
-    for (let i = 0; i < 10; i++) {
-      pos[i] = [
-        Random.randint(SCREEN_X, SCREEN_X + SCREEN_W),
-        Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H),
-        2 * 12,
-      ];
-      lightPower[i] = 1000;
-      lightColor[i] = [1, 1, 1, 1];
-    }
-
     phina.main(() => {
       const app = GLApp({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
       app.enableStats();
-
-      const gl = app.gl;
-      window.gl = gl;
-      console.log("MAX_VERTEX_ATTRIBS = " + gl.getParameter(gl.MAX_VERTEX_ATTRIBS));
-      console.log("MAX_VARYING_VECTORS = " + gl.getParameter(gl.MAX_VARYING_VECTORS));
 
       app.replaceScene(ManagerScene({
         scenes: [{
@@ -71,6 +60,7 @@
                 "glsprite.vs": "../../_bundle/asset/shader/glsprite.vs",
                 "glsinglesprite.vs": "../../_bundle/asset/shader/glsinglesprite.vs",
                 "gltiledmap.vs": "../../_bundle/asset/shader/gltiledmap.vs",
+                "postprocessing.vs": "../../_bundle/asset/shader/postprocessing.vs",
               },
               fragmentShader: {
                 "glsprite.fs": "../../_bundle/asset/shader/glsprite.fs",
@@ -78,6 +68,9 @@
                 "gltiledmap.fs": "../../_bundle/asset/shader/gltiledmap.fs",
                 "lighting_uniform.fs": "../../_bundle/asset/shader/lighting_uniform.fs",
                 "lighting.fs": "../../_bundle/asset/shader/lighting.fs",
+                "add.fs": "../../_bundle/asset/shader/add.fs",
+                "blur.fs": "../../_bundle/asset/shader/blur.fs",
+                "passthrough.fs": "../../_bundle/asset/shader/passthrough.fs",
               },
               tiled: {
                 "testmap": "./mapchip/testmap.json",
@@ -132,6 +125,33 @@
         const gl = params.app.gl;
         const renderer = params.app.renderer;
         const spriteArray = renderer.getSpriteArray("sprite");
+        const lighting = renderer.lighting;
+
+        const start = StartPass(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
+        const emission = Emission(gl, CANVAS_WIDTH, CANVAS_HEIGHT, this, renderer);
+        const blurH = Blur(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
+        blurH.setDirection(0.02, 0);
+        const blurV = Blur(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
+        blurV.setDirection(0, 0.02);
+        const merge = Merge();
+        const add = Add(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
+        add.setWeight(1.0, 5.0);
+
+        renderer.addNext(start);
+        renderer.addNext(emission);
+        emission.setNext(blurH);
+        blurH.setNext(blurV);
+        merge.merge(start, blurV).setNext(add);
+        add.isEnd = true;
+
+        lighting.setColor(100, 100, 100);
+        lighting.pointLights.forEach(pl => {
+          pl
+            .setZ(3 * 12)
+            .setPower(10000)
+            .setColor(255, 200, 100);
+          // pl.addChildTo(this);
+        });
 
         GLSprite({ spriteArray, image: "black.png" })
           .setOrigin(0, 0)
@@ -146,29 +166,33 @@
           .setZ(100)
           .addChildTo(this);
 
-        GLTiledMap({ gl, tiledAsset: "testmap", layer: 1 })
+        const bg = GLTiledMap({ gl, tiledAsset: "testmap", layer: 1 })
           .setPosition(SCREEN_X, SCREEN_Y)
           .setScale(2)
           .addChildTo(this);
 
-        const z = GLSprite({ spriteArray, image: "mech.png", normalMap: "mech_n.png" })
-          .setPosition(256, 256)
-          .setOrigin(0.5, 1)
+        lighting.pointLights[0]
+          .setPosition(bg.x + 57 * bg.scaleX, bg.y + 25 * bg.scaleY)
           .addChildTo(this);
-        z.on("enterframe", e => {
-          const kb = e.app.keyboard;
-          const v = kb.getKeyDirection();
-          if (v.length() > 0.5) {
-            z.position.add(v.mul(4));
-          }
-          pos[0][0] = z.x;
-          pos[0][1] = z.y - 64;
-          z.z = 40 + z.y / SCREEN_H;
-        });
+        lighting.pointLights[1]
+          .setPosition(bg.x + 343 * bg.scaleX, bg.y + 25 * bg.scaleY)
+          .addChildTo(this);
 
-        for (let i = 0; i < 10; i++) {
+        // const z = GLSprite({ spriteArray, image: "mech.png", normalMap: "mech_n.png" })
+        //   .setPosition(256, 256)
+        //   .setOrigin(0.5, 1)
+        //   .addChildTo(this);
+        // z.on("enterframe", e => {
+        //   const kb = e.app.keyboard;
+        //   const v = kb.getKeyDirection();
+        //   if (v.length() > 0.5) {
+        //     z.position.add(v.mul(4));
+        //   }
+        // });
+
+        for (let i = 0; i < 20; i++) {
           let y;
-          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
+          y = Random.randint(SCREEN_Y + 180, SCREEN_Y + SCREEN_H);
           Zombie({ spriteArray, image: "maid.png", normalMap: "maid_n.png", emissionMap: "maid_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
             .setScale(-1, 1)

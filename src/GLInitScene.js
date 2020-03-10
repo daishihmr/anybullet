@@ -5,8 +5,6 @@ phina.namespace(() => {
 
     init: function (options) {
       this.superInit();
-      
-      console.log("init begin");
 
       const renderer = options.app.renderer;
       const spec = options.spriteArray;

@@ -1,7 +1,8 @@
 precision mediump float;
 
-uniform sampler2D texture[8];
-uniform sampler2D texture_n[8];
+uniform sampler2D texture[4];
+uniform sampler2D texture_n[4];
+uniform sampler2D texture_e[4];
 
 // <include> lighting_uniform.fs
 
@@ -15,35 +16,31 @@ varying vec2 vUv;
 void main(void){
   vec4 col;
   vec3 normal;
+  vec3 emi;
   if (vTextureIndex == 0.0) {
     col = texture2D(texture[0], vUv);
     normal = texture2D(texture_n[0], vUv).xyz;
+    emi = texture2D(texture_e[0], vUv).xyz;
   } else if (vTextureIndex == 1.0) {
     col = texture2D(texture[1], vUv);
     normal = texture2D(texture_n[1], vUv).xyz;
+    emi = texture2D(texture_e[1], vUv).xyz;
   } else if (vTextureIndex == 2.0) {
     col = texture2D(texture[2], vUv);
     normal = texture2D(texture_n[2], vUv).xyz;
+    emi = texture2D(texture_e[2], vUv).xyz;
   } else if (vTextureIndex == 3.0) {
     col = texture2D(texture[3], vUv);
     normal = texture2D(texture_n[3], vUv).xyz;
-  } else if (vTextureIndex == 4.0) {
-    col = texture2D(texture[4], vUv);
-    normal = texture2D(texture_n[4], vUv).xyz;
-  } else if (vTextureIndex == 5.0) {
-    col = texture2D(texture[5], vUv);
-    normal = texture2D(texture_n[5], vUv).xyz;
-  } else if (vTextureIndex == 6.0) {
-    col = texture2D(texture[6], vUv);
-    normal = texture2D(texture_n[6], vUv).xyz;
-  } else if (vTextureIndex == 7.0) {
-    col = texture2D(texture[7], vUv);
-    normal = texture2D(texture_n[7], vUv).xyz;
+    emi = texture2D(texture_e[3], vUv).xyz;
   } else {
     discard;
   }
 
-  vec4 result = calcLighting(vPosition, col, vec3(0.0), normal);
-
-  gl_FragColor = result;
+  vec4 result = calcLighting(vPosition, col, emi, normal);
+  if (result.a < 1.0) {
+    discard;
+  } else {
+    gl_FragColor = result;
+  }
 }

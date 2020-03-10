@@ -23,6 +23,18 @@ phina.namespace(() => {
       return this;
     },
 
+    setPower: function (v) {
+      this.power = v;
+      return this;
+    },
+
+    setColor: function (r, g, b) {
+      this.r = r;
+      this.g = g;
+      this.b = b;
+      return this;
+    },
+
     set: function (drawable) {
       const uni = drawable.uniforms;
       const i = this.index;

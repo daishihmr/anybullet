@@ -40,7 +40,7 @@ phina.namespace(() => {
       const uvs = [];
 
       let offset = 0;
-      this.tiledAsset.json.layers.filter(l => l.type == "tilelayer").forEach((layer, layerIndex) => {
+      this.tiledAsset.json.layers.filter(l => l.type == "tilelayer").reverse().forEach((layer, layerIndex) => {
         const data = layer.data;
 
         tilesets.push({ firstgid: Number.MAX_VALUE });
@@ -63,10 +63,10 @@ phina.namespace(() => {
               offset + 2,
             );
             positions.push(
-              x + 0, y + 1, layerIndex,
-              x + 1, y + 1, layerIndex,
-              x + 0, y + 0, layerIndex,
-              x + 1, y + 0, layerIndex,
+              x + 0, y + 1, layerIndex * -0.01,
+              x + 1, y + 1, layerIndex * -0.01,
+              x + 0, y + 0, layerIndex * -0.01,
+              x + 1, y + 0, layerIndex * -0.01,
             );
             offset += 4;
             textureIndices.push(
@@ -113,13 +113,12 @@ phina.namespace(() => {
           "screenSize",
           "texture",
           "texture_n",
+          "texture_e",
           "ambientColor",
           "lightColor",
           "lightPower",
           "lightPosition",
         );
-
-
     },
 
     setZ: function (v) {
@@ -127,7 +126,7 @@ phina.namespace(() => {
       return this;
     },
 
-    draw: function (gl) {
+    draw: function (gl, lighting) {
       gl.enable(gl.DEPTH_TEST);
       gl.depthFunc(gl.LEQUAL);
       gl.enable(gl.BLEND);
@@ -147,17 +146,15 @@ phina.namespace(() => {
         uni["cameraMatrix2"].setValue([m.m02, m.m12]);
         uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
         for (let i = 0, len = this.textures.length; i < len; i++) {
-          uni[`texture[${i}]`].setValue(i).setTexture(this.textures[i]);
+          uni[`texture[${i}]`].setValue(4 * 0 + i).setTexture(this.textures[i]);
         }
         for (let i = 0, len = this.normalMaps.length; i < len; i++) {
-          uni[`texture_n[${i}]`].setValue(8 + i).setTexture(this.normalMaps[i]);
+          uni[`texture_n[${i}]`].setValue(4 * 1 + i).setTexture(this.normalMaps[i]);
         }
-        uni["ambientColor"].setValue(ambientColor);
-        for (let i = 0; i < 10; i++) {
-          uni[`lightColor[${i}]`].setValue(lightColor[i]);
-          uni[`lightPower[${i}]`].setValue(lightPower[i]);
-          uni[`lightPosition[${i}]`].setValue(pos[i]);
+        for (let i = 0, len = this.emissionMaps.length; i < len; i++) {
+          uni[`texture_e[${i}]`].setValue(4 * 2 + i).setTexture(this.emissionMaps[i]);
         }
+        lighting.set(drawable);
       }
 
       drawable.draw();

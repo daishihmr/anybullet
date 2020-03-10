@@ -26,8 +26,6 @@ phina.namespace(() => {
           .attach("glsprite.fs")
           .link();
 
-        console.log("drawable start");
-
         GLSpriteArray.drawable = phigl.InstancedDrawable(gl, ext)
           .setProgram(program)
           .setIndexValues([0, 1, 2, 1, 3, 2])
@@ -58,13 +56,12 @@ phina.namespace(() => {
           .declareUniforms(
             "screenSize",
             "texture",
+            "alphaEnabled",
             "ambientColor",
             "lightColor",
             "lightPower",
             "lightPosition",
           );
-
-        console.log("drawable ok");
       }
 
       this.array = [];
@@ -84,8 +81,8 @@ phina.namespace(() => {
           0, 0,
           // sprite position
           0, 0, 0,
-          // sprite size ( + active)
-          0, 0, 0,
+          // sprite size ( + active + alpha)
+          0, 0, 0, 1,
           // camera matrix
           1, 0,
           0, 1,
@@ -94,10 +91,10 @@ phina.namespace(() => {
       }
     },
 
-    draw: function (gl) {
+    draw: function (gl, lighting) {
       const drawable = GLSpriteArray.drawable;
 
-      if (this.depthEnabled) {
+      if (this.blendMode === "source-over") {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
       } else {
@@ -107,11 +104,9 @@ phina.namespace(() => {
       if (this.blendMode === "source-over") {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else if (this.blendMode === "lighter") {
+      } else {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
-      } else {
-        gl.disable(gl.BLEND);
       }
 
       for (let i = 0, len = this.instances.length; i < len; i++) {
@@ -121,12 +116,8 @@ phina.namespace(() => {
       const uni = drawable.uniforms;
       uni["screenSize"].setValue([CANVAS_WIDTH, CANVAS_HEIGHT]);
       uni["texture"].setValue(0).setTexture(this.texture);
-      uni["ambientColor"].setValue(ambientColor);
-      for (let i = 0; i < 10; i++) {
-        uni[`lightColor[${i}]`].setValue(lightColor[i]);
-        uni[`lightPower[${i}]`].setValue(lightPower[i]);
-        uni[`lightPosition[${i}]`].setValue(pos[i]);
-      }
+      uni["alphaEnabled"].setValue(this.blendMode == "source-over" ? 0 : 1);
+      lighting.set(drawable);
 
       drawable.setInstanceAttributeData(this.array);
       drawable.draw(this.max);
@@ -270,7 +261,7 @@ phina.namespace(() => {
       const uvmE = this.uvMatrixE;
       const m = this._worldMatrix;
 
-      const size = 30;
+      const size = 31;
 
       // active
       array[idx * size + 23] = (this.parent && this.visible) ? 1 : 0;
@@ -303,13 +294,15 @@ phina.namespace(() => {
         // sprite size
         array[idx * size + 21] = this.width;
         array[idx * size + 22] = this.height;
+        // alpha
+        array[idx * size + 24] = this._worldAlpha;
         // camera matrix
-        array[idx * size + 24] = m.m00;
-        array[idx * size + 25] = m.m10;
-        array[idx * size + 26] = m.m01;
-        array[idx * size + 27] = m.m11;
-        array[idx * size + 28] = m.m02;
-        array[idx * size + 29] = m.m12;
+        array[idx * size + 25] = m.m00;
+        array[idx * size + 26] = m.m10;
+        array[idx * size + 27] = m.m01;
+        array[idx * size + 28] = m.m11;
+        array[idx * size + 29] = m.m02;
+        array[idx * size + 30] = m.m12;
       }
     },
 

@@ -83,7 +83,6 @@ phina.namespace(() => {
       const r = Number("0x" + transparentcolor.substring(1, 3));
       const g = Number("0x" + transparentcolor.substring(3, 5));
       const b = Number("0x" + transparentcolor.substring(5, 7));
-      console.log(transparentcolor,r,g,b)
 
       const img = this.image.domElement;
       const canvas = phina.graphics.Canvas().setSize(img.width, img.height);

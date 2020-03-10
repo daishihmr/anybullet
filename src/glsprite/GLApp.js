@@ -30,7 +30,6 @@ phina.namespace(() => {
     _draw: function () {
       const gl = this.gl;
 
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       this.renderer.render(this.currentScene);
       gl.flush();
     },

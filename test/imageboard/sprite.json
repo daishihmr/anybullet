@@ -2,7 +2,7 @@
 
 {
 	"filename": "black.png",
-	"frame": {"x":197,"y":1,"w":16,"h":16},
+	"frame": {"x":67,"y":1,"w":16,"h":16},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
@@ -10,7 +10,7 @@
 },
 {
 	"filename": "maid.png",
-	"frame": {"x":131,"y":1,"w":64,"h":64},
+	"frame": {"x":1,"y":1,"w":64,"h":64},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":64},
@@ -18,7 +18,7 @@
 },
 {
 	"filename": "maid_e.png",
-	"frame": {"x":131,"y":67,"w":64,"h":64},
+	"frame": {"x":1,"y":67,"w":64,"h":64},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":64},
@@ -26,31 +26,15 @@
 },
 {
 	"filename": "maid_n.png",
-	"frame": {"x":131,"y":133,"w":64,"h":64},
+	"frame": {"x":1,"y":133,"w":64,"h":64},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":64},
 	"sourceSize": {"w":64,"h":64}
 },
 {
-	"filename": "mech.png",
-	"frame": {"x":1,"y":1,"w":128,"h":128},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":128,"h":128},
-	"sourceSize": {"w":128,"h":128}
-},
-{
-	"filename": "mech_n.png",
-	"frame": {"x":1,"y":131,"w":128,"h":128},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":128,"h":128},
-	"sourceSize": {"w":128,"h":128}
-},
-{
 	"filename": "no_normal.png",
-	"frame": {"x":215,"y":1,"w":16,"h":16},
+	"frame": {"x":85,"y":1,"w":16,"h":16},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":16,"h":16},
@@ -61,8 +45,8 @@
 	"version": "1.0",
 	"image": "sprite.png",
 	"format": "RGBA8888",
-	"size": {"w":256,"h":512},
+	"size": {"w":128,"h":256},
 	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:c078eac4e1380c96e109dd99da6f375b:3b6bdd396de2730bdebce2eab2176a49:68d88b3cf7eafc9b5accfffdfb2fda91$"
+	"smartupdate": "$TexturePacker:SmartUpdate:1d71de89bfee85d0f5696e87a6e1d657:758e8935febad695363d48d3b19a3f61:68d88b3cf7eafc9b5accfffdfb2fda91$"
 }
 }

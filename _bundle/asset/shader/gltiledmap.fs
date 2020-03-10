@@ -7,8 +7,6 @@ uniform sampler2D texture_n[8];
 
 varying vec3 vPosition;
 varying float vTextureIndex;
-varying float vBrightness;
-varying float vAlphaEnabled;
 varying float vAlpha;
 varying vec2 vUv;
 
@@ -45,20 +43,7 @@ void main(void){
     discard;
   }
 
-  col *= vec4(vec3(vBrightness), vAlpha);
-
   vec4 result = calcLighting(vPosition, col, vec3(0.0), normal);
 
-  if (vAlphaEnabled == 1.0) {
-    gl_FragColor = result;
-  } else {
-    if (result.a < 0.1) {
-      discard;
-    } else {
-      if (result.a < 1.0) {
-        result = vec4(0.0, 0.0, 0.0, 1.0);
-      }
-      gl_FragColor = result;
-    }
-  }
+  gl_FragColor = result;
 }

@@ -26,24 +26,29 @@
   <script>
     const CANVAS_WIDTH = 1024;
     const CANVAS_HEIGHT = 512;
-    const SCREEN_X = 114;
-    const SCREEN_Y = 0;
-    const SCREEN_W = CANVAS_WIDTH - SCREEN_X * 2;
+    const SCREEN_W = 910;
     const SCREEN_H = 512;
+    const SCREEN_X = (CANVAS_WIDTH - SCREEN_W) / 2;
+    const SCREEN_Y = 0;
 
-    const lightPower = 6000;
+    const ambientColor = [0.5, 0.5, 0.5, 1];
     const pos = [];
+    const lightPower = [];
+    const lightColor = [];
     for (let i = 0; i < 10; i++) {
       pos[i] = [
         Random.randint(SCREEN_X, SCREEN_X + SCREEN_W),
         Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H),
-        50,
+        2 * 12,
       ];
+      lightPower[i] = 1000;
+      lightColor[i] = [1, 1, 1, 1];
     }
 
     phina.main(() => {
       const app = GLApp({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
-      
+      app.enableStats();
+
       const gl = app.gl;
       window.gl = gl;
       console.log("MAX_VERTEX_ATTRIBS = " + gl.getParameter(gl.MAX_VERTEX_ATTRIBS));
@@ -141,8 +146,9 @@
           .setZ(100)
           .addChildTo(this);
 
-        GLTiledMap({ gl, tiledAsset: "testmap" })
+        GLTiledMap({ gl, tiledAsset: "testmap", layer: 1 })
           .setPosition(SCREEN_X, SCREEN_Y)
+          .setScale(2)
           .addChildTo(this);
 
         const z = GLSprite({ spriteArray, image: "mech.png", normalMap: "mech_n.png" })
@@ -160,23 +166,12 @@
           z.z = 40 + z.y / SCREEN_H;
         });
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
           let y;
           y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "0001.png", normalMap: "0001_n.png", emissionMap: "0001_e.png" })
+          Zombie({ spriteArray, image: "maid.png", normalMap: "maid_n.png", emissionMap: "maid_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
-            .addChildTo(this);
-          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "0005.png", normalMap: "0005_n.png", emissionMap: "0005_e.png" })
-            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
-            .addChildTo(this);
-          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "0020.png", normalMap: "0020_n.png", emissionMap: "0020_e.png" })
-            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
-            .addChildTo(this);
-          y = Random.randint(SCREEN_Y, SCREEN_Y + SCREEN_H);
-          Zombie({ spriteArray, image: "0031.png", normalMap: "0031_n.png", emissionMap: "0031_e.png" })
-            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
+            .setScale(-1, 1)
             .addChildTo(this);
         }
       },

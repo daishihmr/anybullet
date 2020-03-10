@@ -4,12 +4,13 @@ phina.namespace(() => {
 
     gl: null,
     context: null,
+    lighting: null,
 
     init: function (gl) {
       gl.clearColor(0.1, 0.1, 0.2, 1.0);
       gl.clearDepth(1.0);
 
-      gl.enable(gl.CULL_FACE);
+      // gl.enable(gl.CULL_FACE);
       gl.enable(gl.DEPTH_TEST);
       gl.enable(gl.BLEND);
       gl.depthFunc(gl.LEQUAL);

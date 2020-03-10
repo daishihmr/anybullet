@@ -134,10 +134,10 @@ phina.namespace(() => {
         uni["texture"].setValue(0).setTexture(this.texture);
         uni["texture_n"].setValue(1).setTexture(this.normalMap);
         uni["texture_e"].setValue(2).setTexture(this.emissionMap);
-        uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+        uni["ambientColor"].setValue(ambientColor);
         for (let i = 0; i < 10; i++) {
-          uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
-          uni[`lightPower[${i}]`].setValue(lightPower);
+          uni[`lightColor[${i}]`].setValue(lightColor[i]);
+          uni[`lightPower[${i}]`].setValue(lightPower[i]);
           uni[`lightPosition[${i}]`].setValue(pos[i]);
         }
       }

@@ -1,13 +1,11 @@
-attribute vec2 position;
+attribute vec3 position;
 attribute vec2 uv;
 attribute float textureIndex;
 
 uniform float instanceActive;
 uniform vec3 instancePosition;
 uniform vec2 instanceSize;
-uniform float instanceAlphaEnabled;
 uniform float instanceAlpha;
-uniform float instanceBrightness;
 uniform vec2 cameraMatrix0;
 uniform vec2 cameraMatrix1;
 uniform vec2 cameraMatrix2;
@@ -15,24 +13,18 @@ uniform vec2 screenSize;
 
 varying vec3 vPosition;
 varying float vTextureIndex;
-varying float vBrightness;
-varying float vAlphaEnabled;
 varying float vAlpha;
 varying vec2 vUv;
 
 void main(void) {
   if (instanceActive == 0.0) {
     vTextureIndex = 0.0;
-    vAlphaEnabled = 0.0;
     vAlpha = 0.0;
-    vBrightness = 0.0;
     vUv = uv;
     gl_Position = vec4(0.0);
   } else {
     vTextureIndex = textureIndex;
-    vAlphaEnabled = instanceAlphaEnabled;
     vAlpha = instanceAlpha;
-    vBrightness = instanceBrightness;
     vUv = uv;
 
     mat3 cameraMatrix = mat3(
@@ -52,12 +44,12 @@ void main(void) {
     );
 
     // ワールド座標
-    vec3 worldPosition = cameraMatrix * m * vec3(position, 1.0);
+    vec3 worldPosition = cameraMatrix * m * vec3(position.xy, 1.0);
     vPosition = worldPosition;
 
     // スクリーン座標
     vec3 screenPosition = (worldPosition + vec3(screenSize.x * -0.5, screenSize.y * -0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), 1.0 / (screenSize.y * -0.5), 0.0);
-    screenPosition.z = instancePosition.z * -0.001;
+    screenPosition.z = (instancePosition.z + position.z) * -0.001;
 
     gl_Position = vec4(screenPosition, 1.0);
   }

@@ -9,9 +9,6 @@ phina.namespace(() => {
       options = ({}).$extend(GLTiledMap.defaults, options);
       this.superInit(options);
 
-      this.depthEnabled = options.depthEnabled;
-      this.alphaEnabled = options.alphaEnabled;
-      this.brightness = options.brightness;
       this.blendMode = options.blendMode;
 
       const gl = options.gl;
@@ -21,11 +18,11 @@ phina.namespace(() => {
       } else {
         this.tiledAsset = options.tiledAsset;
       }
-      this.layer = options.layer;
 
       const tilesets = this.tiledAsset.tilesets;
-      this.textures = tilesets.map(ts => phigl.Texture(gl, ts.image));
-      this.normalMaps = tilesets.map(ts => phigl.Texture(gl, ts.normalImage));
+      this.textures = tilesets.map(ts => TextureAsset.get(gl, ts.image));
+      this.normalMaps = tilesets.map(ts => TextureAsset.get(gl, ts.normalImage));
+      this.emissionMaps = tilesets.map(ts => TextureAsset.get(gl, ts.emissionImage));
 
       const cols = this.tiledAsset.json.width;
       const rows = this.tiledAsset.json.height;
@@ -37,47 +34,52 @@ phina.namespace(() => {
       this.originX = 0;
       this.originY = 0;
 
-      const data = this.tiledAsset.json.layers[this.layer].data;
-
       const indices = [];
       const positions = [];
       const textureIndices = [];
       const uvs = [];
-      tilesets.push({ firstgid: Number.MAX_VALUE });
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const idx = y * cols + x;
-          const cell = data[idx];
 
-          if (cell == 0) continue;
+      let offset = 0;
+      this.tiledAsset.json.layers.filter(l => l.type == "tilelayer").forEach((layer, layerIndex) => {
+        const data = layer.data;
 
-          const textureIndex = tilesets.indexOf(tilesets.find(ts => cell < ts.firstgid)) - 1;
-          const uv = tilesets[textureIndex].calcUv(cell);
+        tilesets.push({ firstgid: Number.MAX_VALUE });
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            const idx = y * cols + x;
+            const cell = data[idx];
 
-          indices.push(
-            idx * 4 + 0,
-            idx * 4 + 1,
-            idx * 4 + 2,
-            idx * 4 + 1,
-            idx * 4 + 3,
-            idx * 4 + 2,
-          );
-          positions.push(
-            x + 0, y + 1,
-            x + 1, y + 1,
-            x + 0, y + 0,
-            x + 1, y + 0,
-          );
-          textureIndices.push(
-            textureIndex,
-            textureIndex,
-            textureIndex,
-            textureIndex,
-          );
-          uvs.push(...uv);
+            if (cell == 0) continue;
+
+            const textureIndex = tilesets.indexOf(tilesets.find(ts => cell < ts.firstgid)) - 1;
+            const uv = tilesets[textureIndex].calcUv(cell);
+
+            indices.push(
+              offset + 0,
+              offset + 1,
+              offset + 2,
+              offset + 1,
+              offset + 3,
+              offset + 2,
+            );
+            positions.push(
+              x + 0, y + 1, layerIndex,
+              x + 1, y + 1, layerIndex,
+              x + 0, y + 0, layerIndex,
+              x + 1, y + 0, layerIndex,
+            );
+            offset += 4;
+            textureIndices.push(
+              textureIndex,
+              textureIndex,
+              textureIndex,
+              textureIndex,
+            );
+            uvs.push(...uv);
+          }
         }
-      }
-      tilesets.pop();
+        tilesets.pop();
+      });
 
       if (GLTiledMap.program == null) {
         GLTiledMap.program = phigl.Program(gl)
@@ -90,7 +92,7 @@ phina.namespace(() => {
         .setIndexValues(indices)
         .declareAttributes("position", "uv", "textureIndex")
         .setAttributeDataArray([{
-          unitSize: 2,
+          unitSize: 3,
           data: positions,
         }, {
           unitSize: 2,
@@ -104,9 +106,7 @@ phina.namespace(() => {
           "instanceActive",
           "instancePosition",
           "instanceSize",
-          "instanceAlphaEnabled",
           "instanceAlpha",
-          "instanceBrightness",
           "cameraMatrix0",
           "cameraMatrix1",
           "cameraMatrix2",
@@ -118,6 +118,8 @@ phina.namespace(() => {
           "lightPower",
           "lightPosition",
         );
+
+
     },
 
     setZ: function (v) {
@@ -126,34 +128,20 @@ phina.namespace(() => {
     },
 
     draw: function (gl) {
-      const drawable = this.drawable;
-
-      if (this.depthEnabled) {
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-      } else {
-        gl.disable(gl.DEPTH_TEST);
-      }
-
-      if (this.blendMode === "source-over") {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else if (this.options.blendMode === "lighter") {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-      } else {
-        gl.disable(gl.BLEND);
-      }
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const m = this._worldMatrix;
+
+      const drawable = this.drawable;
       const uni = drawable.uniforms;
       uni["instanceActive"].setValue((this.parent && this.visible) ? 1 : 0);
       if (this.parent && this.visible) {
         uni["instancePosition"].setValue([-this.width * this.originX, -this.height * this.originY, this.z]);
         uni["instanceSize"].setValue([this.tilewidth, this.tileheight]);
-        uni["instanceAlphaEnabled"].setValue(this.alphaEnabled ? 1 : 0);
         uni["instanceAlpha"].setValue(this._worldAlpha);
-        uni["instanceBrightness"].setValue(this.brightness);
         uni["cameraMatrix0"].setValue([m.m00, m.m10]);
         uni["cameraMatrix1"].setValue([m.m01, m.m11]);
         uni["cameraMatrix2"].setValue([m.m02, m.m12]);
@@ -164,10 +152,10 @@ phina.namespace(() => {
         for (let i = 0, len = this.normalMaps.length; i < len; i++) {
           uni[`texture_n[${i}]`].setValue(8 + i).setTexture(this.normalMaps[i]);
         }
-        uni["ambientColor"].setValue([0.1, 0.1, 0.1, 1.0]);
+        uni["ambientColor"].setValue(ambientColor);
         for (let i = 0; i < 10; i++) {
-          uni[`lightColor[${i}]`].setValue([1.0, 1.0, 1.0, 1.0]);
-          uni[`lightPower[${i}]`].setValue(lightPower);
+          uni[`lightColor[${i}]`].setValue(lightColor[i]);
+          uni[`lightPower[${i}]`].setValue(lightPower[i]);
           uni[`lightPosition[${i}]`].setValue(pos[i]);
         }
       }
@@ -178,10 +166,6 @@ phina.namespace(() => {
     _static: {
       defaults: {
         layer: 0,
-        depthEnabled: true,
-        blendMode: "source-over",
-        alphaEnabled: false,
-        brightness: 1.0,
       },
       program: null,
     }

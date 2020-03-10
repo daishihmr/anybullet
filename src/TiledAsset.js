@@ -30,6 +30,7 @@ phina.namespace(() => {
       this.id = id;
       this.image = null;
       this.normalImage = null;
+      this.emissionImage = null;
       this.firstgid = tileset.firstgid;
       this.source = tileset.source;
 
@@ -60,12 +61,46 @@ phina.namespace(() => {
                 this.normalImage = phina.asset.Texture();
                 return this.normalImage.load(basePath + filename);
               })
+              .then(() => {
+                const filename = json.image.replace(".png", "_e.png");
+                this.emissionImage = phina.asset.Texture();
+                return this.emissionImage.load(basePath + filename);
+              })
+              .then(() => {
+                if (json.transparentcolor) {
+                  this.procTransparent(json.transparentcolor);
+                }
+              })
               .then(() => resolve(this));
           } else {
             resolve(this);
           }
         });
       });
+    },
+
+    procTransparent: function (transparentcolor) {
+      const r = Number("0x" + transparentcolor.substring(1, 3));
+      const g = Number("0x" + transparentcolor.substring(3, 5));
+      const b = Number("0x" + transparentcolor.substring(5, 7));
+      console.log(transparentcolor,r,g,b)
+
+      const img = this.image.domElement;
+      const canvas = phina.graphics.Canvas().setSize(img.width, img.height);
+      canvas.context.drawImage(img, 0, 0);
+      const imgData = canvas.context.getImageData(0, 0, img.width, img.height);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 0] == r && data[i + 1] == g && data[i + 2] == b) {
+          data[i + 0] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 0;
+        }
+      }
+      canvas.context.putImageData(imgData, 0, 0);
+
+      this.image = canvas;
     },
 
     setup: function () {
@@ -78,11 +113,14 @@ phina.namespace(() => {
     },
 
     calcUv: function (cell) {
+      const w = this.tilewidth / this.imagewidth;
+      const h = this.tileheight / this.imageheight;
+
       const index = cell - this.firstgid;
-      const u0 = (index % this.cols) * this.tilewidth / this.imagewidth;
-      const u1 = u0 + this.tilewidth / this.imagewidth;
-      const v0 = (Math.floor(index / this.cols) * this.tileheight) / this.imageheight;
-      const v1 = v0 + this.tileheight / this.imageheight;
+      const u0 = (index % this.cols) * w;
+      const u1 = u0 + w;
+      const v0 = Math.floor(index / this.cols) * h;
+      const v1 = v0 + h;
 
       return [
         u0, v1,

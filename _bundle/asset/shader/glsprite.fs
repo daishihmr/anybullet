@@ -19,7 +19,6 @@ void main(void){
   vec3 normal = normalize(texture2D(texture, vUvN).xyz * 2.0 - 1.0);
 
   vec4 result = calcLighting(vec3(v0.xy, 0.0), col, emi, normal);
-  result = vec4(floor(result.rgb * 5.0) / 5.0, result.a);
 
   if (result.a == 0.0) {
     discard;

@@ -24,6 +24,7 @@ phina.namespace(() => {
       }
 
       this.gl = this.domElement.getContext("webgl");
+      const ext = this.gl.getExtension("OES_texture_float");
       this.renderer = GLAppRenderer(this.gl);
     },
 

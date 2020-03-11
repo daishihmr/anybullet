@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body style="background-color: rgb(128, 128, 255);">
+  <script src="../_bundle/lib/phina.js"></script>
+  <script>phina.globalize()</script>
+  <script src="../_bundle/lib/phigl.js"></script>
+  <script src="../src/megaparticle/Init.js"></script>
+  <script>
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    document.body.appendChild(canvas);
+    const gl = canvas.getContext("webgl");
+
+    const loader = AssetLoader();
+    loader.load({
+      json: {
+        "fire.particle": "../src/particle2dx/fire.json",
+      },
+      image: {
+        "fire.png": "../src/particle2dx/fire.png",
+      },
+      vertexShader: {
+        "mega_init.vs": "../_bundle/asset/shader/megaparticle/mega_init.vs",
+        "mega_emit.vs": "../_bundle/asset/shader/megaparticle/mega_emit.vs",
+        "mega_update.vs": "../_bundle/asset/shader/megaparticle/mega_update.vs",
+        "mega_draw.vs": "../_bundle/asset/shader/megaparticle/mega_draw.vs",
+        "mega_test.vs": "../_bundle/asset/shader/megaparticle/mega_test.vs",
+      },
+      fragmentShader: {
+        "mega_init.fs": "../_bundle/asset/shader/megaparticle/mega_init.fs",
+        "mega_emit.fs": "../_bundle/asset/shader/megaparticle/mega_emit.fs",
+        "mega_update.fs": "../_bundle/asset/shader/megaparticle/mega_update.fs",
+        "mega_draw.fs": "../_bundle/asset/shader/megaparticle/mega_draw.fs",
+        "mega_test.fs": "../_bundle/asset/shader/megaparticle/mega_test.fs",
+      },
+    });
+    loader.on("load", () => {
+      main();
+    });
+
+    const main = () => {
+      const fireParticle = AssetManager.get("json", "fire.particle").data;
+      console.log(fireParticle);
+
+      const mega = megaparticle.Init({ gl });
+      mega.initialize();
+      const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire.png" });
+      mega.registerTexture("fire.png", texImage);
+
+      for (let i = 0; i < 5; i++) {
+        mega.emit({
+          index: i,
+          emitterPositionX: 256,
+          emitterPositionY: 256,
+        }.$extend(fireParticle));
+      }
+      // canvas.width = megaparticle.Init.texSize;
+      // canvas.height = megaparticle.Init.texSize;
+      // mega.test();
+
+      mega.draw(canvas.width, canvas.height);
+
+
+      mega.gl.flush();
+
+    };
+  </script>
+</body>
+
+</html>

@@ -459,17 +459,17 @@ phina.namespace(function() {
 phina.namespace(function() {
 
   /**
-   * @constructor phigl.Framebuffer
+   * @constructor phigl.FloatTexFramebuffer
    * @param  {WebGLRenderingContext} gl context
    * @param {number} width
    * @param {number} height
    */
-  phina.define("phigl.Framebuffer", {
+  phina.define("phigl.FloatTexFramebuffer", {
     gl: null,
     
     /**
      * @type {phigl.Texture}
-     * @memberOf phigl.Framebuffer.prototype
+     * @memberOf phigl.FloatTexFramebuffer.prototype
      */
     texture: null,
 
@@ -512,7 +512,7 @@ phina.namespace(function() {
     },
 
     /**
-     * @memberOf phigl.Framebuffer.prototype
+     * @memberOf phigl.FloatTexFramebuffer.prototype
      * @return {this}
      */
     bind: function() {
@@ -524,7 +524,7 @@ phina.namespace(function() {
 
     _static: {
       /**
-       * @memberOf phigl.Framebuffer
+       * @memberOf phigl.FloatTexFramebuffer
        * @param  {WebGLRenderingContext} gl context
        */
       unbind: function(gl) {
@@ -804,13 +804,13 @@ phina.namespace(function() {
         });
 
         var src = options.src;
-        var dst = options.dst || phina.graphics.Canvas();
-        var fitW = src.width < src.height;
-        var asp = src.width / src.height;
-
         if (typeof(src) == "string") {
           src = phina.asset.AssetManager.get("image", src);
         }
+
+        var dst = options.dst || phina.graphics.Canvas();
+        var fitW = src.domElement.width < src.domElement.height;
+        var asp = src.domElement.width / src.domElement.height;
 
         if (Math.sqrt(src.domElement.width) % 1 === 0 && Math.sqrt(src.domElement.height) % 1 === 0) {
           return src;

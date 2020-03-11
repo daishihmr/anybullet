@@ -10,12 +10,14 @@ attribute vec3 instancePosition;
 attribute vec4 instanceSize;
 attribute vec3 cameraMatrix0;
 attribute vec3 cameraMatrix1;
+attribute vec3 color;
 
 uniform vec2 screenSize;
 
 varying vec4 v0; // vec2 position + vec2 uv
 varying vec4 v1; // vec2 uvn + vec2 uve
 varying float vAlpha;
+varying vec3 vColor;
 
 void main(void) {
   float instanceActive = instanceSize.z;
@@ -23,6 +25,7 @@ void main(void) {
     v0 = vec4(0.0);
     v1 = vec4(0.0);
     vAlpha = 0.0;
+    vColor = vec3(0.0);
     gl_Position = vec4(0.0);
   } else {
     mat3 uvm = mat3(
@@ -68,6 +71,7 @@ void main(void) {
     v0 = vec4(vPosition, vUv);
     v1 = vec4(vUvN, vUvE);
     vAlpha = instanceSize.w;
+    vColor = color;
 
     // スクリーン座標
     vec3 screenPosition = (worldPosition + vec3(-screenSize.x * 0.5, -screenSize.y * 0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), -1.0 / (screenSize.y * 0.5), 0.0);

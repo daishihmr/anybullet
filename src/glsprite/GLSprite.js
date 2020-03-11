@@ -52,6 +52,7 @@ phina.namespace(() => {
             "instanceSize",
             "cameraMatrix0",
             "cameraMatrix1",
+            "color",
           )
           .declareUniforms(
             "screenSize",
@@ -87,6 +88,8 @@ phina.namespace(() => {
           1, 0,
           0, 1,
           0, 0,
+          // color
+          1, 1, 1,
         ]);
       }
     },
@@ -162,6 +165,9 @@ phina.namespace(() => {
       this.spriteArray.instances.push(this);
 
       this.z = 0;
+      this.r = 1;
+      this.g = 1;
+      this.b = 1;
     },
 
     setImage: function (image) {
@@ -261,7 +267,7 @@ phina.namespace(() => {
       const uvmE = this.uvMatrixE;
       const m = this._worldMatrix;
 
-      const size = 31;
+      const size = 34;
 
       // active
       array[idx * size + 23] = (this.parent && this.visible) ? 1 : 0;
@@ -303,6 +309,10 @@ phina.namespace(() => {
         array[idx * size + 28] = m.m11;
         array[idx * size + 29] = m.m02;
         array[idx * size + 30] = m.m12;
+        // color
+        array[idx * size + 31] = this.r;
+        array[idx * size + 32] = this.g;
+        array[idx * size + 33] = this.b;
       }
     },
 

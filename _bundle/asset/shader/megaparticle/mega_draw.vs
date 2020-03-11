@@ -11,8 +11,10 @@ varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
 
+float secSize = 1.0 / texSize;
+
 void main(void) {
-  vec4 data0 = texture2D(texture, (dataUv + vec2(0.5, 0.5)) / texSize);
+  vec4 data0 = texture2D(texture, dataUv + (vec2(0.0, 0.0) + vec2(0.5, -0.5)) * secSize);
   float lifeStart = data0[0];
   float life = data0[1];
   if (lifeStart + life <= time) {
@@ -23,13 +25,13 @@ void main(void) {
   } else {
     float t = (time - lifeStart) / life;
 
-    vec4 data1 = texture2D(texture, (dataUv + vec2(1.5, 0.5)) / texSize);
-    vec4 data2 = texture2D(texture, (dataUv + vec2(2.5, 0.5)) / texSize);
-    vec4 data3 = texture2D(texture, (dataUv + vec2(3.5, 0.5)) / texSize);
-    vec4 data4 = texture2D(texture, (dataUv + vec2(0.5, 1.5)) / texSize);
-    vec4 data5 = texture2D(texture, (dataUv + vec2(1.5, 1.5)) / texSize);
-    vec4 data6 = texture2D(texture, (dataUv + vec2(2.5, 1.5)) / texSize);
-    vec4 data7 = texture2D(texture, (dataUv + vec2(3.5, 1.5)) / texSize);
+    vec4 data1 = texture2D(texture, dataUv + (vec2(1.0, 0.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data2 = texture2D(texture, dataUv + (vec2(2.0, 0.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data3 = texture2D(texture, dataUv + (vec2(3.0, 0.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data4 = texture2D(texture, dataUv + (vec2(0.0, -1.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data5 = texture2D(texture, dataUv + (vec2(1.0, -1.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data6 = texture2D(texture, dataUv + (vec2(2.0, -1.0) + vec2(0.5, -0.5)) * secSize);
+    vec4 data7 = texture2D(texture, dataUv + (vec2(3.0, -1.0) + vec2(0.5, -0.5)) * secSize);
 
     vec2 pos = data0.zw;
     float scale = mix(data2[1], data2[2], t);

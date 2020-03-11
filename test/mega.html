@@ -9,13 +9,14 @@
   <script src="../_bundle/lib/phina.js"></script>
   <script>phina.globalize()</script>
   <script src="../_bundle/lib/phigl.js"></script>
-  <script src="../src/megaparticle/Init.js"></script>
+  <script src="../src/megaparticle/ParticleSystem.js"></script>
   <script>
     const canvas = document.createElement("canvas");
     canvas.width = 512;
     canvas.height = 512;
     document.body.appendChild(canvas);
     const gl = canvas.getContext("webgl");
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     const loader = AssetLoader();
     loader.load({
@@ -31,6 +32,8 @@
         "mega_update.vs": "../_bundle/asset/shader/megaparticle/mega_update.vs",
         "mega_draw.vs": "../_bundle/asset/shader/megaparticle/mega_draw.vs",
         "mega_test.vs": "../_bundle/asset/shader/megaparticle/mega_test.vs",
+        "mega_copy.vs": "../_bundle/asset/shader/megaparticle/mega_copy.vs",
+        "mega_set.vs": "../_bundle/asset/shader/megaparticle/mega_set.vs",
       },
       fragmentShader: {
         "mega_init.fs": "../_bundle/asset/shader/megaparticle/mega_init.fs",
@@ -38,6 +41,8 @@
         "mega_update.fs": "../_bundle/asset/shader/megaparticle/mega_update.fs",
         "mega_draw.fs": "../_bundle/asset/shader/megaparticle/mega_draw.fs",
         "mega_test.fs": "../_bundle/asset/shader/megaparticle/mega_test.fs",
+        "mega_copy.fs": "../_bundle/asset/shader/megaparticle/mega_copy.fs",
+        "mega_set.fs": "../_bundle/asset/shader/megaparticle/mega_set.fs",
       },
     });
     loader.on("load", () => {
@@ -48,26 +53,45 @@
       const fireParticle = AssetManager.get("json", "fire.particle").data;
       console.log(fireParticle);
 
-      const mega = megaparticle.Init({ gl });
+      const mega = megaparticle.ParticleSystem({ gl });
+      // mega.setupSet();
+      mega.setupCopy();
+
       mega.initialize();
+
       const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire.png" });
       mega.registerTexture("fire.png", texImage);
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 1; i++) {
         mega.emit({
           index: i,
           emitterPositionX: 256,
           emitterPositionY: 256,
         }.$extend(fireParticle));
       }
+
+      // gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      // gl.clear(gl.COLOR_BUFFER_BIT);
+      // mega.set({ index: 0, section0: [1.0, 0.0, 0.0, 1.0] });
+      // mega.set({ index: 1, section1: [0.0, 1.0, 0.0, 1.0] });
+      // mega.set({ index: 2, section4: [0.0, 1.0, 1.0, 1.0] });
+      // mega.set({ index: 56, section0: [0.5, 0.5, 1.0, 1.0] });
+      // mega.set({ index: 63, section15: [1.0, 0.5, 0.5, 1.0] });
+      // mega.copy();
       // canvas.width = megaparticle.Init.texSize;
       // canvas.height = megaparticle.Init.texSize;
       // mega.test();
 
-      mega.draw(canvas.width, canvas.height);
-
-
-      mega.gl.flush();
+      const ticker = Ticker();
+      ticker.fps = 60;
+      ticker.on("tick", () => {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // mega.update(ticker.deltaTime);
+        mega.copy();
+        mega.draw(canvas.width, canvas.height);
+        gl.flush();
+      });
+      ticker.run();
 
     };
   </script>

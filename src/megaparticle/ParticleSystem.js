@@ -3,10 +3,10 @@ phina.namespace(() => {
   const texSize = 32;
   const posX = x => (-texSize / 2 + (x * 4 + 2)) / (texSize / 2);
   const posY = y => (texSize / 2 - (y * 4 + 2)) / (texSize / 2);
-  const uvX = x => x / texSize;
-  const uvY = y => y / texSize;
+  const uvX = x => x * 4 / texSize;
+  const uvY = y => 1 - y * 4 / texSize;
 
-  phina.define("megaparticle.Init", {
+  phina.define("megaparticle.ParticleSystem", {
     _static: {
       texSize: texSize,
     },
@@ -16,7 +16,7 @@ phina.namespace(() => {
       if (gl.getExtension("WEBGL_color_buffer_float") == null) throw "Float Textureに対応してないらしいよ";
 
       this.gl = gl;
-      this.time = Random.randfloat(0, 1000);
+      this.time = 0;
 
       this.framebufferA = phigl.FloatTexFramebuffer(gl, texSize, texSize);
       this.framebufferB = phigl.FloatTexFramebuffer(gl, texSize, texSize);
@@ -29,7 +29,7 @@ phina.namespace(() => {
       this.setupDrawer();
     },
 
-    registerTexture: function(name, image) {
+    registerTexture: function (name, image) {
       if (this.textures[name] == null) {
         this.textures[name] = phigl.Texture(this.gl, image);
         this.textureNames.push(name);
@@ -188,25 +188,35 @@ phina.namespace(() => {
         .attach("mega_update.fs")
         .link();
       const positions = [];
+      const dataUvs = [];
       for (let y = 0; y < texSize / 4; y++) {
         for (let x = 0; x < texSize / 4; x++) {
           positions.push(...[
             posX(x), posY(y)
+          ]);
+          dataUvs.push(...[
+            x, texSize - y,
           ]);
         }
       }
       this.drawableUpdate = phigl.Drawable(gl)
         .setProgram(program)
         .setIndexValues(Array.range(0, (texSize / 4) * (texSize / 4)))
-        .declareAttributes("position")
+        .declareAttributes("position", "dataUv")
         .setAttributeDataArray([{
           unitSize: 2,
           data: positions
+        }, {
+          unitSize: 2,
+          data: dataUvs
         }])
         .createVao()
         .declareUniforms(
           "texture",
+          "texSize",
           "time",
+          "deltaTime",
+          "emitterPosition",
         )
         .setDrawMode(gl.POINTS);
     },
@@ -224,7 +234,9 @@ phina.namespace(() => {
 
       const drawable = this.drawableUpdate;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
+      drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["time"].setValue(this.time);
+      drawable.uniforms["deltaTime"].setValue(deltaTime);
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
 
@@ -370,6 +382,129 @@ phina.namespace(() => {
       drawable.draw();
 
       console.log("test ok");
+    },
+
+    setupSet: function () {
+      const gl = this.gl;
+
+      const program = phigl.Program(gl)
+        .attach("mega_set.vs")
+        .attach("mega_set.fs")
+        .link();
+      this.drawableSet = phigl.Drawable(gl)
+        .setProgram(program)
+        .setIndexValues([0])
+        .createVao()
+        .declareUniforms(
+          "position",
+          "section0",
+          "section1",
+          "section2",
+          "section3",
+          "section4",
+          "section5",
+          "section6",
+          "section7",
+          "section8",
+          "section9",
+          "section10",
+          "section11",
+          "section12",
+          "section13",
+          "section14",
+          "section15",
+        )
+        .setDrawMode(gl.POINTS);
+    },
+
+    set: function (params) {
+      const gl = this.gl;
+
+      this.framebufferA.bind(gl);
+      gl.viewport(0, 0, texSize, texSize);
+      gl.disable(gl.CULL_FACE);
+
+      const drawable = this.drawableSet;
+      const x = params.index % (texSize / 4);
+      const y = Math.floor(params.index / (texSize / 4));
+      drawable.uniforms["position"].setValue([posX(x), posY(y)]);
+      drawable.uniforms["section0"].setValue(params.section0 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section1"].setValue(params.section1 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section2"].setValue(params.section2 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section3"].setValue(params.section3 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section4"].setValue(params.section4 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section5"].setValue(params.section5 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section6"].setValue(params.section6 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section7"].setValue(params.section7 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section8"].setValue(params.section8 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section9"].setValue(params.section9 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section10"].setValue(params.section10 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section11"].setValue(params.section11 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section12"].setValue(params.section12 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section13"].setValue(params.section13 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section14"].setValue(params.section14 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.uniforms["section15"].setValue(params.section15 || [0.0, 0.0, 0.0, 0.0]);
+      drawable.draw();
+      phigl.FloatTexFramebuffer.unbind(gl);
+    },
+
+    setupCopy: function () {
+      const gl = this.gl;
+
+      const program = phigl.Program(gl)
+        .attach("mega_copy.vs")
+        .attach("mega_copy.fs")
+        .link();
+      const indices = [];
+      const positions = [];
+      const dataUvs = [];
+      const len = (texSize / 4) * (texSize / 4);
+      for (let index = 0; index < len; index++) {
+        const x = index % (texSize / 4);
+        const y = Math.floor(index / (texSize / 4));
+        indices.push(index);
+        positions.push(...[
+          posX(x), posY(y)
+        ]);
+        dataUvs.push(...[
+          uvX(x), uvY(y),
+        ]);
+      }
+      this.drawableCopy = phigl.Drawable(gl)
+        .setProgram(program)
+        .setIndexValues(indices)
+        .declareAttributes("position", "dataUv")
+        .setAttributeDataArray([{
+          unitSize: 2,
+          data: positions
+        }, {
+          unitSize: 2,
+          data: dataUvs
+        }])
+        .createVao()
+        .declareUniforms(
+          "texture",
+          "texSize",
+        )
+        .setDrawMode(gl.POINTS);
+    },
+
+    copy: function () {
+      const gl = this.gl;
+
+      this.framebufferB.bind(gl);
+      gl.viewport(0, 0, texSize, texSize);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.disable(gl.CULL_FACE);
+
+      const drawable = this.drawableCopy;
+      drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
+      drawable.uniforms["texSize"].setValue(texSize);
+      drawable.draw();
+      phigl.FloatTexFramebuffer.unbind(gl);
+
+      this.swapBuffer();
     },
 
   });

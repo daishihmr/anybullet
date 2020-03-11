@@ -1,8 +1,8 @@
 precision mediump float;
 
 void main(void) {
-  vec2 c = gl_PointCoord * 4.0 - vec2(0.5);
-  float stateSection = floor(c.y * 4.0 + c.x);
+  vec2 c = gl_PointCoord * 4.0;
+  float stateSection = floor(c.y) * 4.0 + floor(c.x);
   if (stateSection == 0.0) {
     gl_FragColor = vec4(
       // active

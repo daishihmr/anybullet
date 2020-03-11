@@ -8,12 +8,12 @@ uniform mat4 data2;
 vec2 randomFactor = vec2(0.0);
 
 float random(vec2 st) {
-  randomFactor += vec2(time * 3.0, time * 2.0);
-  return fract(sin(dot(st + randomFactor, vec2(12.9898, 78.233))) * 43758.5453123);
+  return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
 float variance(float base, float variance) {
-  return mix(base - variance, base + variance, random(gl_FragCoord.xy));
+  randomFactor += vec2(time * 3.0, time * 2.0);
+  return mix(base - variance, base + variance, random(gl_FragCoord.xy + randomFactor));
 }
 
 vec2 spawnPosition(float emitterX, float emitterY, float varianceX, float varianceY) {
@@ -127,9 +127,16 @@ vec4 section5() {
   return vec4(rTo, gTo, bTo, aTo);
 }
 
+vec4 section6() {
+  float emitterPositionX = data0[0][0];
+  float emitterPositionY = data0[0][1];
+
+  return vec4(emitterPositionX, emitterPositionY, 0.0, 0.0);
+}
+
 void main(void) {
-  vec2 c = gl_PointCoord * 4.0 - vec2(0.5);
-  float stateSection = floor(c.y * 4.0 + c.x);
+  vec2 c = gl_PointCoord * 4.0;
+  float stateSection = floor(c.y) * 4.0 + floor(c.x);
   if (stateSection == 0.0) {
     gl_FragColor = section0();
   } else if (stateSection == 1.0) {
@@ -142,6 +149,8 @@ void main(void) {
     gl_FragColor = section4();
   } else if (stateSection == 5.0) {
     gl_FragColor = section5();
+  } else if (stateSection == 6.0) {
+    gl_FragColor = section6();
   } else {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
   }

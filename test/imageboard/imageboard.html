@@ -168,7 +168,7 @@
 
         const bg = GLTiledMap({ gl, tiledAsset: "testmap", layer: 1 })
           .setPosition(SCREEN_X, SCREEN_Y)
-          .setScale(2)
+          .setScale(4)
           .addChildTo(this);
 
         lighting.pointLights[0]
@@ -190,12 +190,12 @@
         //   }
         // });
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 5; i++) {
           let y;
           y = Random.randint(SCREEN_Y + 180, SCREEN_Y + SCREEN_H);
           Zombie({ spriteArray, image: "maid.png", normalMap: "maid_n.png", emissionMap: "maid_e.png" })
             .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
-            .setScale(-1, 1)
+            .setScale(-1.5, 1.5)
             .addChildTo(this);
         }
       },

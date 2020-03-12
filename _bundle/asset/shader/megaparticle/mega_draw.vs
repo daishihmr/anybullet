@@ -7,6 +7,7 @@ uniform float texSize;
 uniform float time;
 uniform vec2 screenSize;
 
+varying float vActive;
 varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
@@ -16,18 +17,27 @@ float secSize = 1.0 / texSize;
 
 void main(void) {
   vec4 data0 = texture2D(texture, dataUv + (vec2(0.0, 0.0) + vec2(0.5, -0.5)) * secSize);
-  float lifeStart = data0[0];
+  vec4 data7 = texture2D(texture, dataUv + (vec2(3.0, -1.0) + vec2(0.5, -0.5)) * secSize);
+
+  float emitterStartTime = data0[0];
   float life = data0[1];
-  if (time < lifeStart || lifeStart + life <= time) {
+  float emitInterval = data7[0];
+  float indexInEmitter = data7[1];
+
+  float lifeFrom = emitterStartTime + emitInterval * indexInEmitter;
+  float lifeTo = lifeFrom + life;
+
+  if (time < lifeFrom || lifeTo <= time) {
+    vActive = 0.0;
     vTextureIndex = 0.0;
     vUv = vec2(0.0);
     vColor = vec4(0.0);
     vAdditive = 0.0;
     gl_Position = vec4(0.0);
   } else {
-    float t = clamp((time - lifeStart) / life, 0.0, 1.0);
+    vActive = 1.0;
+    float t = (time - lifeFrom) / life;
 
-    vec4 data1 = texture2D(texture, dataUv + (vec2(1.0, 0.0) + vec2(0.5, -0.5)) * secSize);
     vec4 data2 = texture2D(texture, dataUv + (vec2(2.0, 0.0) + vec2(0.5, -0.5)) * secSize);
     vec4 data3 = texture2D(texture, dataUv + (vec2(3.0, 0.0) + vec2(0.5, -0.5)) * secSize);
     vec4 data4 = texture2D(texture, dataUv + (vec2(0.0, -1.0) + vec2(0.5, -0.5)) * secSize);

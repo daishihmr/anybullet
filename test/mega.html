@@ -25,25 +25,29 @@
         "fire.particle": "../src/particle2dx/fire.json",
       },
       image: {
-        "fire.png": "../src/particle2dx/fire.png",
+        "fire.png": "../src/particle2dx/square.png",
       },
       vertexShader: {
-        "mega_init.vs": "../_bundle/asset/shader/megaparticle/mega_init.vs",
-        "mega_emit.vs": "../_bundle/asset/shader/megaparticle/mega_emit.vs",
+        "mega_start.vs": "../_bundle/asset/shader/megaparticle/mega_start.vs",
+        "mega_stop.vs": "../_bundle/asset/shader/megaparticle/mega_stop.vs",
         "mega_update.vs": "../_bundle/asset/shader/megaparticle/mega_update.vs",
         "mega_draw.vs": "../_bundle/asset/shader/megaparticle/mega_draw.vs",
         "mega_test.vs": "../_bundle/asset/shader/megaparticle/mega_test.vs",
         "mega_copy.vs": "../_bundle/asset/shader/megaparticle/mega_copy.vs",
         "mega_set.vs": "../_bundle/asset/shader/megaparticle/mega_set.vs",
+        "mega_init.vs": "../_bundle/asset/shader/megaparticle/mega_init.vs",
+        "mega_emit.vs": "../_bundle/asset/shader/megaparticle/mega_emit.vs",
       },
       fragmentShader: {
-        "mega_init.fs": "../_bundle/asset/shader/megaparticle/mega_init.fs",
-        "mega_emit.fs": "../_bundle/asset/shader/megaparticle/mega_emit.fs",
+        "mega_start.fs": "../_bundle/asset/shader/megaparticle/mega_start.fs",
+        "mega_stop.fs": "../_bundle/asset/shader/megaparticle/mega_stop.fs",
         "mega_update.fs": "../_bundle/asset/shader/megaparticle/mega_update.fs",
         "mega_draw.fs": "../_bundle/asset/shader/megaparticle/mega_draw.fs",
         "mega_test.fs": "../_bundle/asset/shader/megaparticle/mega_test.fs",
         "mega_copy.fs": "../_bundle/asset/shader/megaparticle/mega_copy.fs",
         "mega_set.fs": "../_bundle/asset/shader/megaparticle/mega_set.fs",
+        "mega_init.fs": "../_bundle/asset/shader/megaparticle/mega_init.fs",
+        "mega_emit.fs": "../_bundle/asset/shader/megaparticle/mega_emit.fs",
       },
     });
     loader.on("load", () => {
@@ -58,37 +62,36 @@
 
       const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire.png" });
       document.body.appendChild(texImage.domElement);
-      mega.registerTexture("fire.png", texImage);
+      mega.registerTexture("rain.png", texImage);
 
       const emitters = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 1; i++) {
         const emitter = mega.createEmitter(particleJson);
-        emitter.x = Random.randint(0, canvas.width);
-        emitter.y = Random.randint(0, canvas.height);
+        emitter.start(Random.randint(0, canvas.width), Random.randint(0, canvas.height));
         emitters.push(emitter);
       }
 
+      setTimeout(() => {
+        emitters[0].stop();
+      }, 3000);
+
       // mega.set({
       //   index: 0,
-      //   section0: [0.0, 5.0, 256.0, 256.0],
-      //   section1: [0.0, 0.0, 0.0, 0.0],
-      //   section2: [0.0, 64.0, 64.0, 0.0],
-      //   section3: [0.0, 10.0, 0.0, 0.0],
-      //   section4: [1.0, 1.0, 1.0, 0.1],
-      //   section5: [1.0, 1.0, 1.0, 0.1],
-      //   section6: [32.0, 32.0, 0.0, 0.0],
+      //   section0: [0.0, 5.0, 1.0, 1.0],
+      //   section1: [1.0, 0.0, 0.0, 1.0],
+      //   section2: [0.0, 64.0, 64.0, 1.0],
+      //   section3: [0.0, 10.0, 0.0, 1.0],
+      //   section4: [1.0, 1.0, 1.0, 1.0],
+      //   section5: [1.0, 1.0, 1.0, 1.0],
+      //   section6: [1.0, 0.0, 0.0, 1.0],
       // });
       // canvas.width = megaparticle.ParticleSystem.texSize;
       // canvas.height = megaparticle.ParticleSystem.texSize;
       // mega.test();
 
-      let time = Date.now();
       let stats = null;
       const loop = () => {
-        const deltaTime = Date.now() - time;
-        emitters.forEach(e => e.update({ deltaTime }));
-        mega.update(deltaTime * 0.001);
-        time += deltaTime;
+        mega.update();
 
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clearColor(0, 0, 0, 1);

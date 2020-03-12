@@ -1,6 +1,6 @@
 phina.namespace(() => {
 
-  const texSize = 32;
+  const texSize = 1024;
   const posX = x => (-texSize / 2 + (x * 4 + 2)) / (texSize / 2);
   const posY = y => (texSize / 2 - (y * 4 + 2)) / (texSize / 2);
   const uvX = x => x * 4 / texSize;
@@ -23,20 +23,48 @@ phina.namespace(() => {
       this.textures = {};
       this.textureNames = [];
 
-      this.setupInitializer();
-      this.setupEmitter();
-      this.setupUpdater();
-      this.setupDrawer();
+      this._setupInitializer();
+      this._setupEmitter();
+      this._setupUpdater();
+      this._setupDrawer();
+
+      this._setupCopy();
+      this._setupSet();
+
+      this.indices = Array.range(0, (texSize / 4) * (texSize / 4)).map(index => {
+        return { index, releaseAt: -1 };
+      });
+    },
+
+    getIndices: function (count, releaseTime) {
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        const indexData = this.indices.find(i => i.releaseAt < this.time);
+        if (indexData == null) return result;
+        indexData.releaseAt = this.time + releaseTime;
+        result.push(indexData.index);
+      }
+      return result;
+    },
+
+    createEmitter: function (json) {
+      return megaparticle.Emitter(json, this);
     },
 
     registerTexture: function (name, image) {
       if (this.textures[name] == null) {
-        this.textures[name] = phigl.Texture(this.gl, image);
+        this.textures[name] = phigl.Texture(this.gl, image, (gl) => {
+          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        });
         this.textureNames.push(name);
       }
     },
 
-    setupInitializer: function () {
+    _setupInitializer: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)
@@ -80,23 +108,30 @@ phina.namespace(() => {
       this.swapBuffer();
     },
 
-    setupEmitter: function () {
+    _setupEmitter: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)
         .attach("mega_emit.vs")
         .attach("mega_emit.fs")
         .link();
+      const indices = Array.range(0, (texSize / 4) * (texSize / 4));
       this.drawableEmit = phigl.Drawable(gl)
         .setProgram(program)
-        .setIndexValues([0])
+        .setIndexValues([])
+        .declareAttributes("index")
+        .setAttributeDataArray([{
+          unitSize: 1,
+          data: indices,
+        }])
         .createVao()
         .declareUniforms(
-          "position",
+          "texSize",
           "time",
           "data0",
           "data1",
           "data2",
+          "randomFactor",
         )
         .setDrawMode(gl.POINTS);
     },
@@ -107,12 +142,15 @@ phina.namespace(() => {
       this.framebufferA.bind(gl);
       gl.viewport(0, 0, texSize, texSize);
       gl.disable(gl.CULL_FACE);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
 
       const drawable = this.drawableEmit;
-      const x = params.index % (texSize / 4);
-      const y = Math.floor(params.index / (texSize / 4));
-      drawable.uniforms["position"].setValue([posX(x), posY(y)]);
+      drawable.setIndexValues(params.indices);
+      drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["time"].setValue(this.time);
+      drawable.uniforms["randomFactor0"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
+      drawable.uniforms["randomFactor1"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
       drawable.uniforms["data0"].setValue([
         // [0]
         params.emitterPositionX,
@@ -170,7 +208,7 @@ phina.namespace(() => {
         params.particleLifespanVariance,
         // [2]
         this.textureNames.indexOf(params.textureFileName),
-        0,
+        params.blendFuncDestination == 1 ? 0.94 : 0,
         0,
         0,
         // [3]
@@ -180,28 +218,31 @@ phina.namespace(() => {
       phigl.FloatTexFramebuffer.unbind(gl);
     },
 
-    setupUpdater: function () {
+    _setupUpdater: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)
         .attach("mega_update.vs")
         .attach("mega_update.fs")
         .link();
+      const indices = [];
       const positions = [];
       const dataUvs = [];
-      for (let y = 0; y < texSize / 4; y++) {
-        for (let x = 0; x < texSize / 4; x++) {
-          positions.push(...[
-            posX(x), posY(y)
-          ]);
-          dataUvs.push(...[
-            x, texSize - y,
-          ]);
-        }
+      const len = (texSize / 4) * (texSize / 4);
+      for (let index = 0; index < len; index++) {
+        const x = index % (texSize / 4);
+        const y = Math.floor(index / (texSize / 4));
+        indices.push(index);
+        positions.push(...[
+          posX(x), posY(y)
+        ]);
+        dataUvs.push(...[
+          uvX(x), uvY(y),
+        ]);
       }
       this.drawableUpdate = phigl.Drawable(gl)
         .setProgram(program)
-        .setIndexValues(Array.range(0, (texSize / 4) * (texSize / 4)))
+        .setIndexValues(indices)
         .declareAttributes("position", "dataUv")
         .setAttributeDataArray([{
           unitSize: 2,
@@ -221,8 +262,8 @@ phina.namespace(() => {
         .setDrawMode(gl.POINTS);
     },
 
-    update: function (deltaTime) {
-      this.time += deltaTime;
+    update: function (deltaSec) {
+      this.time += deltaSec;
 
       const gl = this.gl;
 
@@ -231,19 +272,21 @@ phina.namespace(() => {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.disable(gl.CULL_FACE);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
 
       const drawable = this.drawableUpdate;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
       drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["time"].setValue(this.time);
-      drawable.uniforms["deltaTime"].setValue(deltaTime);
+      drawable.uniforms["deltaTime"].setValue(deltaSec);
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
 
       this.swapBuffer();
     },
 
-    setupDrawer: function () {
+    _setupDrawer: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)
@@ -254,33 +297,32 @@ phina.namespace(() => {
       const positions = [];
       const uvs = [];
       const dataUvs = [];
-      let offset = 0;
-      for (let y = 0; y < texSize; y += 4) {
-        for (let x = 0; x < texSize; x += 4) {
-          indices.push(...[
-            offset + 0, offset + 1, offset + 2,
-            offset + 1, offset + 3, offset + 2,
-          ]);
-          offset += 4;
-          positions.push(...[
-            -0.5, 0.5,
-            0.5, 0.5,
-            -0.5, -0.5,
-            0.5, -0.5,
-          ]);
-          uvs.push(...[
-            0, 0,
-            1, 0,
-            0, 1,
-            1, 1,
-          ]);
-          dataUvs.push(...[
-            x, texSize - y,
-            x, texSize - y,
-            x, texSize - y,
-            x, texSize - y,
-          ]);
-        }
+      const len = (texSize / 4) * (texSize / 4);
+      for (let index = 0; index < len; index++) {
+        const x = index % (texSize / 4);
+        const y = Math.floor(index / (texSize / 4));
+        indices.push(...[
+          index * 4 + 0, index * 4 + 1, index * 4 + 2,
+          index * 4 + 1, index * 4 + 3, index * 4 + 2,
+        ]);
+        positions.push(...[
+          -0.5, 0.5,
+          0.5, 0.5,
+          -0.5, -0.5,
+          0.5, -0.5,
+        ]);
+        uvs.push(...[
+          0, 1,
+          1, 1,
+          0, 0,
+          1, 0,
+        ]);
+        dataUvs.push(...[
+          uvX(x), uvY(y),
+          uvX(x), uvY(y),
+          uvX(x), uvY(y),
+          uvX(x), uvY(y),
+        ]);
       }
       this.drawableDraw = phigl.Drawable(gl)
         .setProgram(program)
@@ -317,14 +359,11 @@ phina.namespace(() => {
     draw: function (canvasWidth, canvasHeight) {
       const gl = this.gl;
 
-      phigl.FloatTexFramebuffer.unbind(gl);
-      gl.viewport(0, 0, canvasWidth, canvasHeight);
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.disable(gl.CULL_FACE);
       gl.disable(gl.DEPTH_TEST);
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const drawable = this.drawableDraw;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
@@ -333,6 +372,9 @@ phina.namespace(() => {
       drawable.uniforms["screenSize"].setValue([canvasWidth, canvasHeight]);
       for (let i = 0, len = this.textureNames.length; i < len; i++) {
         drawable.uniforms["particleTexture" + i].setValue(1 + i).setTexture(this.textures[this.textureNames[i]]);
+      }
+      for (let i = this.textureNames.length; i < 8; i++) {
+        drawable.uniforms["particleTexture" + i].setValue(1 + i).setTexture(this.textures[this.textureNames[0]]);
       }
       drawable.draw();
     },
@@ -384,7 +426,7 @@ phina.namespace(() => {
       console.log("test ok");
     },
 
-    setupSet: function () {
+    _setupSet: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)
@@ -423,6 +465,8 @@ phina.namespace(() => {
       this.framebufferA.bind(gl);
       gl.viewport(0, 0, texSize, texSize);
       gl.disable(gl.CULL_FACE);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.BLEND);
 
       const drawable = this.drawableSet;
       const x = params.index % (texSize / 4);
@@ -448,7 +492,7 @@ phina.namespace(() => {
       phigl.FloatTexFramebuffer.unbind(gl);
     },
 
-    setupCopy: function () {
+    _setupCopy: function () {
       const gl = this.gl;
 
       const program = phigl.Program(gl)

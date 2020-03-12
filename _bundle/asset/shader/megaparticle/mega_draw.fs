@@ -12,6 +12,7 @@ uniform sampler2D particleTexture7;
 varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
+varying float vAdditive;
 
 void main(void) {
   vec4 texCol;
@@ -35,4 +36,5 @@ void main(void) {
     discard;
   }
   gl_FragColor = texCol * vColor;
+  gl_FragColor.a *= 1.0 - vAdditive;
 }

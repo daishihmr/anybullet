@@ -4,22 +4,24 @@ uniform float time;
 uniform mat4 data0;
 uniform mat4 data1;
 uniform mat4 data2;
+uniform vec2 randomFactor0;
+uniform vec2 randomFactor1;
 
-vec2 randomFactor = vec2(0.0);
+vec2 _randomFactor = randomFactor0 + randomFactor1;
 
 float random(vec2 st) {
   return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
 float variance(float base, float variance) {
-  randomFactor += vec2(time * 3.0, time * 2.0);
-  return mix(base - variance, base + variance, random(gl_FragCoord.xy + randomFactor));
+  _randomFactor += vec2(time * 3.0, time * 2.0);
+  return mix(base - variance, base + variance, random(_randomFactor));
 }
 
 vec2 spawnPosition(float emitterX, float emitterY, float varianceX, float varianceY) {
   return vec2(
-    mix(emitterX - varianceX, emitterX + varianceX, random(gl_FragCoord.xy)),
-    mix(emitterY - varianceY, emitterY + varianceY, random(gl_FragCoord.xy))
+    mix(emitterX - varianceX, emitterX + varianceX, random(randomFactor0 + gl_FragCoord.xy)),
+    mix(emitterY - varianceY, emitterY + varianceY, random(randomFactor1 + gl_FragCoord.xy))
   );
 }
 
@@ -68,7 +70,12 @@ vec4 section2() {
 
   float tangentialAccel = variance(tangentialAcceleration, tangentialAccelVariance);
   float scaleFrom = variance(startParticleSize, startParticleSizeVariance);
-  float scaleTo = variance(finishParticleSize, finishParticleSizeVariance);
+  float scaleTo;
+  if (finishParticleSize < 0.0) {
+    scaleTo = scaleFrom;
+  } else {
+    scaleTo = variance(finishParticleSize, finishParticleSizeVariance);
+  }
   float rotationFrom = variance(rotationStart, rotationStartVariance);
 
   return vec4(tangentialAccel, scaleFrom, scaleTo, rotationFrom);
@@ -130,8 +137,9 @@ vec4 section5() {
 vec4 section6() {
   float emitterPositionX = data0[0][0];
   float emitterPositionY = data0[0][1];
+  float additive = data2[2][1];
 
-  return vec4(emitterPositionX, emitterPositionY, 0.0, 0.0);
+  return vec4(emitterPositionX, emitterPositionY, additive, 0.0);
 }
 
 void main(void) {

@@ -22,6 +22,8 @@ phina.namespace(() => {
       this.framebufferB = phigl.FloatTexFramebuffer(gl, texSize, texSize);
       this.textures = {};
       this.textureNames = [];
+      this.reservedStopIndices = [];
+      this.velocityUpdateTime = 0;
 
       this._setupStarter();
       this._setupStoper();
@@ -31,14 +33,23 @@ phina.namespace(() => {
       this._setupCopy();
       this._setupSet();
 
-      // this._setupInitializer();
-      // this._setupEmitter();
-
       this.indices = Array.range(0, (texSize / 4) * (texSize / 4)).map(index => {
         return { index, releaseAt: -1 };
       });
 
       this.freeIndex = 0;
+    },
+
+    delete: function () {
+      this.framebufferA.delete();
+      this.framebufferB.delete();
+      this.drawableStart.delete();
+      this.drawableStop.delete();
+      this.drawableUpdate.delete();
+      this.drawableDraw.delete();
+      this.drawableSet.delete();
+      this.drawableCopy.delete();
+      this.textureNames.forEach(name => this.textures[name].delete());
     },
 
     swapBuffer: function () {
@@ -63,7 +74,7 @@ phina.namespace(() => {
     registerTexture: function (name, image) {
       if (this.textures[name] == null) {
         this.textures[name] = phigl.Texture(this.gl, image, (gl) => {
-          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+          // gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -111,13 +122,11 @@ phina.namespace(() => {
       gl.disable(gl.DEPTH_TEST);
 
       const drawable = this.drawableStart;
-      drawable.indices.set(indices);
+      drawable.setIndexValues(indices);
       drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["time"].setValue(this.time);
       drawable.uniforms["randomFactor0"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
       drawable.uniforms["randomFactor1"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
-      drawable.uniforms["randomFactor2"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
-      drawable.uniforms["randomFactor3"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
       drawable.uniforms["data0"].setValue([
         // [0]
         x,
@@ -175,7 +184,7 @@ phina.namespace(() => {
         params.particleLifespanVariance,
         // [2]
         this.textureNames.indexOf(params.textureFileName),
-        params.blendFuncDestination == 1 ? 0.94 : 0.06,
+        0,
         params.duration < 0 ? 1.0 : 0.0,
         emitInterval,
         // [3]
@@ -219,7 +228,7 @@ phina.namespace(() => {
           unitSize: 2,
           data: dataUvs
         }])
-        .createVao()
+        // .createVao()
         .declareUniforms(
           "texture",
           "texSize",
@@ -227,7 +236,13 @@ phina.namespace(() => {
         .setDrawMode(gl.POINTS);
     },
 
-    stop: function (indices) {
+    reserveStop: function (indices) {
+      this.reservedStopIndices.push(...indices);
+    },
+
+    execStop: function () {
+      if (this.reservedStopIndices.length == 0) return;
+
       const gl = this.gl;
 
       this.framebufferB.bind(gl);
@@ -237,13 +252,16 @@ phina.namespace(() => {
       gl.disable(gl.DEPTH_TEST);
 
       const drawable = this.drawableStop;
-      drawable.indices.set(indices);
+      drawable.setIndexValues(this.reservedStopIndices);
       drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
 
       this.swapBuffer();
+      this.copy();
+
+      this.reservedStopIndices.clear();
     },
 
     _setupUpdater: function () {
@@ -285,13 +303,17 @@ phina.namespace(() => {
           "texSize",
           "time",
           "deltaTime",
-          "emitterPosition",
+          "deltaPosition",
+          "updateVelocity",
         )
         .setDrawMode(gl.POINTS);
     },
 
-    update: function (deltaSec = 1 / 60) {
+    update: function (deltaPosition = [0, 0], deltaSec = 0.0166) { // 0.0166 = 1 / 60
+      this.execStop();
+
       this.time += deltaSec;
+      this.velocityUpdateTime -= deltaSec;
 
       const gl = this.gl;
 
@@ -308,10 +330,16 @@ phina.namespace(() => {
       drawable.uniforms["texSize"].setValue(texSize);
       drawable.uniforms["time"].setValue(this.time);
       drawable.uniforms["deltaTime"].setValue(deltaSec);
+      drawable.uniforms["deltaPosition"].setValue(deltaPosition);
+      drawable.uniforms["updateVelocity"].setValue(true);
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
 
       this.swapBuffer();
+
+      if (this.velocityUpdateTime <= 0) {
+        this.velocityUpdateTime = 1 / 10;
+      }
     },
 
     _setupDrawer: function () {
@@ -390,7 +418,8 @@ phina.namespace(() => {
       gl.disable(gl.CULL_FACE);
       gl.disable(gl.DEPTH_TEST);
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      // gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       const drawable = this.drawableDraw;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
@@ -529,160 +558,6 @@ phina.namespace(() => {
       phigl.FloatTexFramebuffer.unbind(gl);
 
       this.swapBuffer();
-    },
-
-    _setupInitializer: function () {
-      const gl = this.gl;
-
-      const program = phigl.Program(gl)
-        .attach("mega_init.vs")
-        .attach("mega_init.fs")
-        .link();
-      const positions = [];
-      for (let y = 0; y < texSize / 4; y++) {
-        for (let x = 0; x < texSize / 4; x++) {
-          positions.push(...[
-            posX(x), posY(y)
-          ]);
-        }
-      }
-      this.drawableInit = phigl.Drawable(gl)
-        .setProgram(program)
-        .setIndexValues(Array.range(0, (texSize / 4) * (texSize / 4)))
-        .declareAttributes("position")
-        .setAttributeDataArray([{
-          unitSize: 2,
-          data: positions
-        }])
-        .createVao()
-        .declareUniforms(
-          "texSize",
-        )
-        .setDrawMode(gl.POINTS);
-    },
-
-    initialize: function () {
-      const gl = this.gl;
-
-      this.framebufferB.bind(gl);
-      gl.viewport(0, 0, texSize, texSize);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.disable(gl.CULL_FACE);
-      this.drawableInit.draw();
-      phigl.FloatTexFramebuffer.unbind(gl);
-
-      this.swapBuffer();
-    },
-
-    _setupEmitter: function () {
-      const gl = this.gl;
-
-      const program = phigl.Program(gl)
-        .attach("mega_emit.vs")
-        .attach("mega_emit.fs")
-        .link();
-      const indices = Array.range(0, (texSize / 4) * (texSize / 4));
-      this.drawableEmit = phigl.Drawable(gl)
-        .setProgram(program)
-        .setIndexValues([])
-        .declareAttributes("index")
-        .setAttributeDataArray([{
-          unitSize: 1,
-          data: indices,
-        }])
-        .createVao()
-        .declareUniforms(
-          "texSize",
-          "time",
-          "data0",
-          "data1",
-          "data2",
-          "randomFactor",
-        )
-        .setDrawMode(gl.POINTS);
-    },
-
-    emit: function (params) {
-      const gl = this.gl;
-
-      this.framebufferA.bind(gl);
-      gl.viewport(0, 0, texSize, texSize);
-      gl.disable(gl.CULL_FACE);
-      gl.disable(gl.BLEND);
-      gl.disable(gl.DEPTH_TEST);
-
-      const drawable = this.drawableEmit;
-      drawable.setIndexValues(params.indices);
-      drawable.uniforms["texSize"].setValue(texSize);
-      drawable.uniforms["time"].setValue(this.time);
-      drawable.uniforms["randomFactor0"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
-      drawable.uniforms["randomFactor1"].setValue([phina.util.Random.random(), phina.util.Random.random()]);
-      drawable.uniforms["data0"].setValue([
-        // [0]
-        params.emitterPositionX,
-        params.emitterPositionY,
-        params.sourcePositionVariancex,
-        params.sourcePositionVariancey,
-        // [1]
-        params.startParticleSize,
-        params.startParticleSizeVariance,
-        params.finishParticleSize,
-        params.finishParticleSizeVariance,
-        // [2]
-        params.rotationStart,
-        params.rotationStartVariance,
-        params.rotationEnd,
-        params.rotationEndVariance,
-        // [3]
-        params.startColorRed,
-        params.startColorVarianceRed,
-        params.finishColorRed,
-        params.finishColorVarianceRed,
-      ]);
-      drawable.uniforms["data1"].setValue([
-        // [0]
-        params.startColorGreen,
-        params.startColorVarianceGreen,
-        params.finishColorGreen,
-        params.finishColorVarianceGreen,
-        // [1]
-        params.startColorBlue,
-        params.startColorVarianceBlue,
-        params.finishColorBlue,
-        params.finishColorVarianceBlue,
-        // [2]
-        params.startColorAlpha,
-        params.startColorVarianceAlpha,
-        params.finishColorAlpha,
-        params.finishColorVarianceAlpha,
-        // [3]
-        params.angle,
-        params.angleVariance,
-        params.speed,
-        params.speedVariance,
-      ]);
-      drawable.uniforms["data2"].setValue([
-        // [0]
-        params.gravityx,
-        params.gravityy,
-        params.radialAcceleration,
-        params.radialAccelVariance,
-        // [1]
-        params.tangentialAcceleration,
-        params.tangentialAccelVariance,
-        params.particleLifespan,
-        params.particleLifespanVariance,
-        // [2]
-        this.textureNames.indexOf(params.textureFileName),
-        params.blendFuncDestination == 1 ? 0.94 : 0.06,
-        0,
-        0,
-        // [3]
-        0, 0, 0, 0,
-      ]);
-      drawable.draw();
-      phigl.FloatTexFramebuffer.unbind(gl);
     },
 
     test: function () {

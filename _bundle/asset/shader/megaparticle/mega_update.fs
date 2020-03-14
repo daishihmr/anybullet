@@ -4,6 +4,7 @@ varying float vEmitterStartTime;
 varying vec2 vEmitterPosition;
 varying vec2 vVelocity;
 varying vec2 vPos;
+varying vec2 vBasePosition;
 varying vec4 vData0;
 varying vec4 vData1;
 varying vec4 vData2;
@@ -34,8 +35,6 @@ vec4 section2() {
 
 vec4 section3() {
   vec4 d = vData3;
-  d[1] = vVelocity.x;
-  d[2] = vVelocity.y;
   return d;
 }
 
@@ -58,11 +57,15 @@ vec4 section6() {
 
 vec4 section7() {
   vec4 d = vData7;
+  d[2] = vBasePosition.x;
+  d[3] = vBasePosition.y;
   return d;
 }
 
 vec4 section8() {
   vec4 d = vData8;
+  d[0] = vVelocity.x;
+  d[1] = vVelocity.y;
   return d;
 }
 

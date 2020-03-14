@@ -6,33 +6,28 @@ uniform mat4 data1;
 uniform mat4 data2;
 uniform vec2 randomFactor0;
 uniform vec2 randomFactor1;
-uniform vec2 randomFactor2;
-uniform vec2 randomFactor3;
 
 varying float vIndex;
+varying vec2 vPosition;
 
 vec2 _randomFactor = randomFactor0 + randomFactor1;
+float PI = 3.141592653589793;
 
 float random(vec2 st) {
   return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
 float variance(float base, float variance) {
-  _randomFactor += vec2(time * 3.0, time * 2.0);
+  if (variance == 0.0) return base;
+  _randomFactor += gl_PointCoord * gl_FragCoord.xy;
   return mix(base - variance, base + variance, random(_randomFactor));
 }
 
 vec2 spawnPosition(float emitterX, float emitterY, float varianceX, float varianceY) {
   return vec2(
-    mix(emitterX - varianceX, emitterX + varianceX, random(randomFactor0 + gl_FragCoord.xy)),
-    mix(emitterY - varianceY, emitterY + varianceY, random(randomFactor1 + gl_FragCoord.xy))
+    mix(emitterX - varianceX, emitterX + varianceX, random(randomFactor0 + vPosition)),
+    mix(emitterY - varianceY, emitterY + varianceY, random(randomFactor1 + vPosition))
   );
-}
-
-vec2 spawnVelocity(float angle, float angleVariance, float speed, float speedVariance) {
-  float _angle = radians(mix(angle - angleVariance, angle + angleVariance, random(randomFactor2 + gl_FragCoord.xy)));
-  float _speed = mix(speed - speedVariance, speed + speedVariance, random(randomFactor3 + gl_FragCoord.xy));
-  return vec2(cos(_angle) * _speed, sin(_angle) * _speed);
 }
 
 vec4 section0() {
@@ -61,22 +56,28 @@ vec4 section1() {
   float sourcePositionVariancey = data0[0][3];
 
   vec2 pos = spawnPosition(emitterPositionX, emitterPositionY, sourcePositionVariancex, sourcePositionVariancey);
-  vec2 radialAccel = vec2(pos.x - emitterPositionY, pos.y - emitterPositionY);
-  normalize(radialAccel);
-  radialAccel *= variance(radialAcceleration, radialAccelVariance);
+  vec2 radialAccel = vec2(pos.x - emitterPositionX, pos.y - emitterPositionY);
+  if (length(radialAccel) == 0.0) {
+    float x = random(_randomFactor) * 2.0 - 1.0;
+    _randomFactor += gl_PointCoord * gl_FragCoord.xy;
+    float y = random(_randomFactor) * 2.0 - 1.0;
+    _randomFactor += gl_PointCoord * gl_FragCoord.xy;
+    radialAccel = vec2(x, y);
+  }
+  radialAccel = normalize(radialAccel) * variance(radialAcceleration, radialAccelVariance);
 
   return vec4(gravityX, gravityY, radialAccel.x, radialAccel.y);
 }
 
 vec4 section2() {
-  float tangentialAcceleration = data2[0][2];
-  float tangentialAccelVariance = data2[0][3];
+  float tangentialAcceleration = data2[1][0];
+  float tangentialAccelVariance = data2[1][1];
   float startParticleSize = data0[1][0];
   float startParticleSizeVariance = data0[1][1];
   float finishParticleSize = data0[1][2];
   float finishParticleSizeVariance = data0[1][3];
-  float rotationStart = data0[2][0];
-  float rotationStartVariance = data0[2][1];
+  float rotationStart = radians(data0[2][0]);
+  float rotationStartVariance = radians(data0[2][1]);
 
   float tangentialAccel = variance(tangentialAcceleration, tangentialAccelVariance);
   float scaleFrom = variance(startParticleSize, startParticleSizeVariance);
@@ -92,18 +93,13 @@ vec4 section2() {
 }
 
 vec4 section3() {
-  float rotationEnd = data0[2][2];
-  float rotationEndVariance = data0[2][3];
-  float angle = data1[3][0];
-  float angleVariance = data1[3][1];
-  float speed = data1[3][2];
-  float speedVariance = data1[3][3];
+  float rotationEnd = radians(data0[2][2]);
+  float rotationEndVariance = radians(data0[2][3]);
   float textureIndex = data2[2][0];
 
   float rotationTo = variance(rotationEnd, rotationEndVariance);
-  vec2 velocity = spawnVelocity(angle, angleVariance, speed, speedVariance);
 
-  return vec4(rotationTo, velocity.x, velocity.y, textureIndex);
+  return vec4(rotationTo, 0.0, 0.0, textureIndex);
 }
 
 vec4 section4() {
@@ -145,10 +141,9 @@ vec4 section5() {
 vec4 section6() {
   float emitterPositionX = data0[0][0];
   float emitterPositionY = data0[0][1];
-  float additive = data2[2][1];
   float loop = data2[2][2];
 
-  return vec4(emitterPositionX, emitterPositionY, additive, loop);
+  return vec4(emitterPositionX, emitterPositionY, 0.0, loop);
 }
 
 vec4 section7() {
@@ -171,9 +166,13 @@ vec4 section8() {
   float speed = data1[3][2];
   float speedVariance = data1[3][3];
 
-  vec2 velocity = spawnVelocity(angle, angleVariance, speed, speedVariance);
+  float _angle = radians(variance(angle, angleVariance));
+  float _speed = variance(speed, speedVariance);
 
-  return vec4(velocity.x, velocity.y, 0.0, 0.0);
+  vec2 velocity = vec2(cos(_angle) * _speed, sin(_angle) * _speed);
+  vec2 baseVelocity = velocity;
+
+  return vec4(velocity.x, velocity.y, baseVelocity.x, baseVelocity.y);
 }
 
 void main(void) {

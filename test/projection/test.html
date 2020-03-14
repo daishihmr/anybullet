@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <script src="../../_bundle/lib/phina.js"></script>
+  <script src="../../_bundle/lib/phigl.js"></script>
+  <script>
+    phina.globalize();
+    phina.main(() => {
+      const loader = AssetLoader();
+      loader.on("load", () => {
+        main();
+      });
+      loader.load({
+        "vertexShader": {
+          "shadowmap.vs": "./shadowmap.vs"
+        },
+        "fragmentShader": {
+          "shadowmap.fs": "./shadowmap.fs"
+        },
+      });
+    });
+
+    const main = () => {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl");
+
+      const program = phigl.Program(gl)
+        .attach("shadowmap.vs")
+        .attach("shadowmap.fs")
+        .link();
+      const drawable = phigl.Drawale(gl)
+        .setProgram(program)
+        .setIndexValues([0, 1, 2, 1, 3, 2])
+        .declareAttributes("position")
+        .setAttributeDataArray([{
+          unitSize: 2,
+          data: [
+            -0.5, 0.5,
+            0.5, 0.5,
+            -0.5, -0.5,
+            0.5, -0.5,
+          ]
+        }])
+        .createVao()
+        .declareUniforms("t", "s", "r", "eye", "far");
+
+      drawable.uniforms["t"].setValue([])
+      drawable.uniforms["eye"].setValue([512, 256]);
+      drawable.uniforms["far"].setValue(1024);
+    };
+
+  </script>
+</body>
+
+</html>

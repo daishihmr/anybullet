@@ -22,32 +22,28 @@
     const loader = AssetLoader();
     loader.load({
       json: {
-        "fire.particle": "../src/particle2dx/fire.json",
+        "sun.particle": "./particle/sun.json",
       },
       image: {
-        "fire.png": "../src/particle2dx/square.png",
+        "sun.png": "./particle/sun.png",
       },
       vertexShader: {
         "mega_start.vs": "../_bundle/asset/shader/megaparticle/mega_start.vs",
         "mega_stop.vs": "../_bundle/asset/shader/megaparticle/mega_stop.vs",
         "mega_update.vs": "../_bundle/asset/shader/megaparticle/mega_update.vs",
         "mega_draw.vs": "../_bundle/asset/shader/megaparticle/mega_draw.vs",
-        "mega_test.vs": "../_bundle/asset/shader/megaparticle/mega_test.vs",
         "mega_copy.vs": "../_bundle/asset/shader/megaparticle/mega_copy.vs",
         "mega_set.vs": "../_bundle/asset/shader/megaparticle/mega_set.vs",
-        "mega_init.vs": "../_bundle/asset/shader/megaparticle/mega_init.vs",
-        "mega_emit.vs": "../_bundle/asset/shader/megaparticle/mega_emit.vs",
+        "mega_test.vs": "../_bundle/asset/shader/megaparticle/mega_test.vs",
       },
       fragmentShader: {
         "mega_start.fs": "../_bundle/asset/shader/megaparticle/mega_start.fs",
         "mega_stop.fs": "../_bundle/asset/shader/megaparticle/mega_stop.fs",
         "mega_update.fs": "../_bundle/asset/shader/megaparticle/mega_update.fs",
         "mega_draw.fs": "../_bundle/asset/shader/megaparticle/mega_draw.fs",
-        "mega_test.fs": "../_bundle/asset/shader/megaparticle/mega_test.fs",
         "mega_copy.fs": "../_bundle/asset/shader/megaparticle/mega_copy.fs",
         "mega_set.fs": "../_bundle/asset/shader/megaparticle/mega_set.fs",
-        "mega_init.fs": "../_bundle/asset/shader/megaparticle/mega_init.fs",
-        "mega_emit.fs": "../_bundle/asset/shader/megaparticle/mega_emit.fs",
+        "mega_test.fs": "../_bundle/asset/shader/megaparticle/mega_test.fs",
       },
     });
     loader.on("load", () => {
@@ -55,25 +51,25 @@
     });
 
     const main = () => {
-      const particleJson = AssetManager.get("json", "fire.particle").data;
+      const particleJson = AssetManager.get("json", "sun.particle").data;
       console.log(particleJson);
 
       const mega = megaparticle.ParticleSystem({ gl });
 
-      const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire.png" });
+      const texImage = phigl.ImageUtil.resizePowOf2({ src: "sun.png" });
       document.body.appendChild(texImage.domElement);
-      mega.registerTexture("rain.png", texImage);
+      mega.registerTexture("sun.png", texImage);
 
-      const emitters = [];
-      for (let i = 0; i < 1; i++) {
-        const emitter = mega.createEmitter(particleJson);
-        emitter.start(Random.randint(0, canvas.width), Random.randint(0, canvas.height));
-        emitters.push(emitter);
-      }
+      const emitters = Array.range(0, 1).map((i) => {
+        return mega.createEmitter(particleJson);
+      });
 
-      setTimeout(() => {
-        emitters[0].stop();
-      }, 3000);
+      // const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
+      // const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
+      const x = () => canvas.width * 0.5;
+      const y = () => canvas.height * 0.5;
+
+      setTimeout(() => { emitters[0].start(512, 256) }, 10);
 
       // mega.set({
       //   index: 0,
@@ -91,7 +87,7 @@
 
       let stats = null;
       const loop = () => {
-        mega.update();
+        mega.update([0, 0]);
 
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clearColor(0, 0, 0, 1);

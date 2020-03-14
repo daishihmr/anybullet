@@ -16,10 +16,7 @@ phina.namespace(() => {
     },
 
     stop: function () {
-      this.particleSystem.stop(this.indices);
-    },
-
-    update: function (app) {
+      this.particleSystem.reserveStop(this.indices);
     },
 
   });

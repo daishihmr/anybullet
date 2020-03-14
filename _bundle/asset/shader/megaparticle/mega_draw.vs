@@ -11,7 +11,6 @@ varying float vActive;
 varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
-varying float vAdditive;
 
 float secSize = 1.0 / texSize;
 
@@ -32,7 +31,6 @@ void main(void) {
     vTextureIndex = 0.0;
     vUv = vec2(0.0);
     vColor = vec4(0.0);
-    vAdditive = 0.0;
     gl_Position = vec4(0.0);
   } else {
     vActive = 1.0;
@@ -60,7 +58,7 @@ void main(void) {
     mat3 matR = mat3(
       c, -s, 0.0,
       s, c, 0.0,
-      0.0, 0.0, 1.0
+      pos.x, pos.y, 1.0
     );
     mat3 matS = mat3(
       scale, 0.0, 0.0,
@@ -68,13 +66,12 @@ void main(void) {
       0.0, 0.0, 1.0
     );
 
-    vec3 worldPosition = matT * matR * matS * vec3(position, 1.0);
+    vec3 worldPosition = matR * matS * vec3(position, 1.0);
     vec3 screenPosition = (worldPosition + vec3(-screenSize.x * 0.5, -screenSize.y * 0.5, 0.0)) * vec3(1.0 / (screenSize.x * 0.5), -1.0 / (screenSize.y * 0.5), 0.0);
 
     vTextureIndex = floor(data3[3]);
     vUv = uv;
     vColor = color;
-    vAdditive = data6[2];
     gl_Position = vec4(screenPosition.xy, 0.0, 1.0);
   }
 }

@@ -142,8 +142,9 @@ vec4 section6() {
   float emitterPositionX = data0[0][0];
   float emitterPositionY = data0[0][1];
   float loop = data2[2][2];
+  float addivitve = data2[3][1];
 
-  return vec4(emitterPositionX, emitterPositionY, 0.0, loop);
+  return vec4(emitterPositionX, emitterPositionY, addivitve, loop);
 }
 
 vec4 section7() {

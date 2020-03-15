@@ -13,6 +13,7 @@ varying float vActive;
 varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
+varying float vAdditive;
 
 void main(void) {
   if (vActive < 1.0) {
@@ -40,7 +41,9 @@ void main(void) {
     }
 
     vec4 color = texCol * vColor;
-    color.a *= 0.25;
+    // color.a *= 0.25;
+    color = vec4(color.rgb * color.a, color.a);
+    color.a *= 1.0 - vAdditive;
     gl_FragColor = color;
   }
 }

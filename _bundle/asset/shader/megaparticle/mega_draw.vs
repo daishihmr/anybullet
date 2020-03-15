@@ -11,6 +11,7 @@ varying float vActive;
 varying float vTextureIndex;
 varying vec2 vUv;
 varying vec4 vColor;
+varying float vAdditive;
 
 float secSize = 1.0 / texSize;
 
@@ -31,6 +32,7 @@ void main(void) {
     vTextureIndex = 0.0;
     vUv = vec2(0.0);
     vColor = vec4(0.0);
+    vAdditive = 0.0;
     gl_Position = vec4(0.0);
   } else {
     vActive = 1.0;
@@ -72,6 +74,7 @@ void main(void) {
     vTextureIndex = floor(data3[3]);
     vUv = uv;
     vColor = color;
+    vAdditive = data6[2];
     gl_Position = vec4(screenPosition.xy, 0.0, 1.0);
   }
 }

@@ -1,6 +1,6 @@
 phina.namespace(() => {
 
-  const texSize = 1024;
+  const texSize = 4096;
   const posX = x => (-texSize / 2 + (x * 4 + 2)) / (texSize / 2);
   const posY = y => (texSize / 2 - (y * 4 + 2)) / (texSize / 2);
   const uvX = x => x * 4 / texSize;
@@ -14,6 +14,7 @@ phina.namespace(() => {
     init: function ({ gl }) {
       if (gl.getExtension("OES_texture_float") == null) throw "Float Textureに対応してないらしいよ";
       if (gl.getExtension("WEBGL_color_buffer_float") == null) throw "Float Textureに対応してないらしいよ";
+      if (gl.getExtension("OES_element_index_uint") == null) throw "drawElemnetsのインデックスにuint使えないらしいよ";
 
       this.gl = gl;
       this.time = 0;
@@ -38,6 +39,18 @@ phina.namespace(() => {
       });
 
       this.freeIndex = 0;
+
+      this.framebufferA.bind();
+      gl.viewport(0, 0, texSize, texSize);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      phigl.FloatTexFramebuffer.unbind(gl);
+
+      this.framebufferB.bind();
+      gl.viewport(0, 0, texSize, texSize);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      phigl.FloatTexFramebuffer.unbind(gl);
     },
 
     delete: function () {
@@ -91,7 +104,7 @@ phina.namespace(() => {
         .attach("mega_start.vs")
         .attach("mega_start.fs")
         .link();
-      this.drawableStart = phigl.Drawable(gl)
+      this.drawableStart = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues([])
         .declareAttributes("index")
@@ -189,7 +202,7 @@ phina.namespace(() => {
         emitInterval,
         // [3]
         indices[0],
-        0,
+        params.blendFuncDestination == 1 ? 1 : 0,
         0,
         0,
       ]);
@@ -217,7 +230,7 @@ phina.namespace(() => {
           uvX(x), uvY(y),
         ]);
       }
-      this.drawableStop = phigl.Drawable(gl)
+      this.drawableStop = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues([])
         .declareAttributes("position", "dataUv")
@@ -286,7 +299,7 @@ phina.namespace(() => {
           uvX(x), uvY(y),
         ]);
       }
-      this.drawableUpdate = phigl.Drawable(gl)
+      this.drawableUpdate = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues(indices)
         .declareAttributes("position", "dataUv")
@@ -380,7 +393,8 @@ phina.namespace(() => {
           uvX(x), uvY(y),
         ]);
       }
-      this.drawableDraw = phigl.Drawable(gl)
+
+      this.drawableDraw = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues(indices)
         .declareAttributes("position", "uv", "dataUv")
@@ -419,7 +433,8 @@ phina.namespace(() => {
       gl.disable(gl.DEPTH_TEST);
       gl.enable(gl.BLEND);
       // gl.blendEquation(gl.FUNC_ADD);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      // gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const drawable = this.drawableDraw;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
@@ -442,7 +457,7 @@ phina.namespace(() => {
         .attach("mega_set.vs")
         .attach("mega_set.fs")
         .link();
-      this.drawableSet = phigl.Drawable(gl)
+      this.drawableSet = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues([0])
         .createVao()
@@ -523,7 +538,7 @@ phina.namespace(() => {
           uvX(x), uvY(y),
         ]);
       }
-      this.drawableCopy = phigl.Drawable(gl)
+      this.drawableCopy = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues(indices)
         .declareAttributes("position", "dataUv")
@@ -565,7 +580,7 @@ phina.namespace(() => {
         .attach("mega_test.vs")
         .attach("mega_test.fs")
         .link();
-      const drawable = phigl.Drawable(gl)
+      const drawable = phigl.Drawable32(gl)
         .setProgram(program)
         .setIndexValues([0, 1, 2, 1, 3, 2])
         .declareAttributes("position", "uv")
@@ -599,8 +614,6 @@ phina.namespace(() => {
       gl.disable(gl.CULL_FACE);
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);
       drawable.draw();
-
-      console.log("test ok");
     },
 
   });

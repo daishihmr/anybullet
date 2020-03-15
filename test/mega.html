@@ -53,8 +53,10 @@
     });
 
     const main = () => {
+      const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
+      const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
+
       const particleJson = AssetManager.get("json", "sun.particle").data;
-      console.log(particleJson);
 
       const mega = megaparticle.ParticleSystem({ gl });
 
@@ -62,16 +64,17 @@
       document.body.appendChild(texImage.domElement);
       mega.registerTexture("sun.png", texImage);
 
-      const emitters = Array.range(0, 100).map((i) => {
-        return mega.createEmitter(particleJson);
+      const emitters = Array.range(0, 1).map((i) => {
+        const emitter = mega.createEmitter(particleJson);
+        emitter.x = x();
+        emitter.y = y();
+        return emitter;
       });
-
-      const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
-      const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
+      mega.addMovableEmitter(emitters[0]);
 
       setTimeout(() => {
-        emitters.forEach(e => e.start(x(), y()));
-      }, 5000);
+        emitters.forEach(e => e.start());
+      }, 50);
 
       // mega.set({
       //   index: 0,
@@ -89,6 +92,9 @@
 
       let stats = null;
       const loop = () => {
+        emitters[0].x += -2;
+        emitters[0].y += 1;
+
         mega.update([0, 0]);
 
         gl.viewport(0, 0, canvas.width, canvas.height);

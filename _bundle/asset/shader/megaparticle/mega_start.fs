@@ -23,10 +23,10 @@ float variance(float base, float variance) {
   return mix(base - variance, base + variance, random(_randomFactor));
 }
 
-vec2 spawnPosition(float emitterX, float emitterY, float varianceX, float varianceY) {
+vec2 spawnPosition(float varianceX, float varianceY) {
   return vec2(
-    mix(emitterX - varianceX, emitterX + varianceX, random(randomFactor0 + vPosition)),
-    mix(emitterY - varianceY, emitterY + varianceY, random(randomFactor1 + vPosition))
+    mix(-varianceX, varianceX, random(randomFactor0 + vPosition)),
+    mix(-varianceY, varianceY, random(randomFactor1 + vPosition))
   );
 }
 
@@ -40,7 +40,7 @@ vec4 section0() {
 
   float lifeStart = time;
   float life = variance(particleLifespan, particleLifespanVariance);
-  vec2 pos = spawnPosition(emitterPositionX, emitterPositionY, sourcePositionVariancex, sourcePositionVariancey);
+  vec2 pos = vec2(emitterPositionX, emitterPositionY) + spawnPosition(sourcePositionVariancex, sourcePositionVariancey);
 
   return vec4(lifeStart, life, pos.x, pos.y);
 }
@@ -55,7 +55,7 @@ vec4 section1() {
   float sourcePositionVariancex = data0[0][2];
   float sourcePositionVariancey = data0[0][3];
 
-  vec2 pos = spawnPosition(emitterPositionX, emitterPositionY, sourcePositionVariancex, sourcePositionVariancey);
+  vec2 pos = vec2(emitterPositionX, emitterPositionY) + spawnPosition(sourcePositionVariancex, sourcePositionVariancey);
   vec2 radialAccel = vec2(pos.x - emitterPositionX, pos.y - emitterPositionY);
   if (length(radialAccel) == 0.0) {
     float x = random(_randomFactor) * 2.0 - 1.0;
@@ -156,7 +156,7 @@ vec4 section7() {
   float sourcePositionVariancey = data0[0][3];
 
   float indexInEmitter = vIndex - headIndex;
-  vec2 pos = spawnPosition(emitterPositionX, emitterPositionY, sourcePositionVariancex, sourcePositionVariancey);
+  vec2 pos = spawnPosition(sourcePositionVariancex, sourcePositionVariancey);
 
   return vec4(emitInterval, indexInEmitter, pos.x, pos.y);
 }
@@ -178,8 +178,13 @@ vec4 section8() {
 
 vec4 section9() {
   float emitterId = data2[3][2];
+  float radialAcceleration = data2[0][2];
+  float radialAccelVariance = data2[0][3];
+  float emitterPositionZ = data2[3][3];
 
-  return vec4(emitterId, 0.0, 0.0, 0.0);
+  float radialAccelScalar = variance(radialAcceleration, radialAccelVariance);
+
+  return vec4(emitterId, radialAccelScalar, emitterPositionZ, 0.0);
 }
 
 // vec4 section10() {

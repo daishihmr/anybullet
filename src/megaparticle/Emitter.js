@@ -15,15 +15,24 @@ phina.namespace(() => {
       this.id = megaparticle.Emitter.lastId + 1;
       this.indices = particleSystem.getIndices(json.maxParticles);
 
+      this.z = 0;
+
       megaparticle.Emitter.lastId += 1;
     },
 
-    start: function (x, y) {
-      this.particleSystem.start(this.id, x, y, this.indices, this.json);
+    setZ: function(v) {
+      this.z = v;
+      return this;
+    },
+
+    start: function () {
+      this.particleSystem.start(this.id, this.x, this.y, this.z, this.indices, this.json);
+      return this;
     },
 
     stop: function () {
       this.particleSystem.reserveStop(this.indices);
+      return this;
     },
 
   });

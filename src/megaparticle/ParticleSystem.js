@@ -36,11 +36,9 @@ phina.namespace(() => {
       this._setupCopy();
       this._setupSet();
 
-      this.indices = Array.range(0, (texSize / 4) * (texSize / 4)).map(index => {
-        return { index, releaseAt: -1 };
-      });
-
       this.freeIndex = 0;
+
+      this.movableEmitters = [];
 
       this.framebufferA.bind();
       gl.viewport(0, 0, texSize, texSize);
@@ -55,6 +53,18 @@ phina.namespace(() => {
       phigl.FloatTexFramebuffer.unbind(gl);
 
       console.log("megaparticle準備完了");
+    },
+
+    addMovableEmitter: function(emitter) {
+      if (this.movableEmitters.length < 8) {
+        this.movableEmitters.push(emitter);
+      } else {
+        console.error("movableEmitterは8個までだよ");
+      }
+    },
+
+    removeMovableEmitter: function(emitter) {
+      this.movableEmitters.erase(emitter);
     },
 
     delete: function () {
@@ -128,7 +138,7 @@ phina.namespace(() => {
         .setDrawMode(gl.POINTS);
     },
 
-    start: function (emitterId, x, y, indices, params) {
+    start: function (emitterId, x, y, z, indices, params) {
       const gl = this.gl;
       const emitInterval = params.particleLifespan / params.maxParticles;
 
@@ -208,7 +218,7 @@ phina.namespace(() => {
         indices[0],
         params.blendFuncDestination == 1 ? 1 : 0,
         emitterId,
-        0,
+        z,
       ]);
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
@@ -321,7 +331,8 @@ phina.namespace(() => {
           "time",
           "deltaTime",
           "deltaPosition",
-          "updateVelocity",
+          "moveEmitterIndex[0]",
+          "moveEmitterPosition[0]",
         )
         .setDrawMode(gl.POINTS);
     },
@@ -348,7 +359,16 @@ phina.namespace(() => {
       drawable.uniforms["time"].setValue(this.time);
       drawable.uniforms["deltaTime"].setValue(deltaSec);
       drawable.uniforms["deltaPosition"].setValue(deltaPosition);
-      drawable.uniforms["updateVelocity"].setValue(true);
+      for (let i = 0; i < 8; i++) {
+        if (i < this.movableEmitters.length) {
+          const movableEmitter = this.movableEmitters[i];
+          drawable.uniforms[`moveEmitterIndex[${i}]`].setValue(movableEmitter.id);
+          drawable.uniforms[`moveEmitterPosition[${i}]`].setValue([movableEmitter.x, movableEmitter.y, movableEmitter.z]);
+        } else {
+          drawable.uniforms[`moveEmitterIndex[${i}]`].setValue(-1);
+          drawable.uniforms[`moveEmitterPosition[${i}]`].setValue([0, 0, 0]);
+        }
+      }
       drawable.draw();
       phigl.FloatTexFramebuffer.unbind(gl);
 

@@ -22,6 +22,13 @@ varying vec4 vData5;
 varying vec4 vData6;
 varying vec4 vData7;
 varying vec4 vData8;
+varying vec4 vData9;
+// varying vec4 vData10;
+// varying vec4 vData11;
+// varying vec4 vData12;
+// varying vec4 vData13;
+// varying vec4 vData14;
+// varying vec4 vData15;
 
 float secSize = 1.0 / texSize;
 float PI = 3.141592653589793;
@@ -36,6 +43,14 @@ void main(void) {
   vData6 = texture2D(texture, dataUv + (vec2(2.0, -1.0) + vec2(0.5, -0.5)) * secSize);
   vData7 = texture2D(texture, dataUv + (vec2(3.0, -1.0) + vec2(0.5, -0.5)) * secSize);
   vData8 = texture2D(texture, dataUv + (vec2(0.0, -2.0) + vec2(0.5, -0.5)) * secSize);
+  vData9 = texture2D(texture, dataUv + (vec2(1.0, -2.0) + vec2(0.5, -0.5)) * secSize);
+  // vData10 = texture2D(texture, dataUv + (vec2(2.0, -2.0) + vec2(0.5, -0.5)) * secSize);
+  // vData11 = texture2D(texture, dataUv + (vec2(3.0, -2.0) + vec2(0.5, -0.5)) * secSize);
+  // vData12 = texture2D(texture, dataUv + (vec2(0.0, -3.0) + vec2(0.5, -0.5)) * secSize);
+  // vData13 = texture2D(texture, dataUv + (vec2(1.0, -3.0) + vec2(0.5, -0.5)) * secSize);
+  // vData14 = texture2D(texture, dataUv + (vec2(2.0, -3.0) + vec2(0.5, -0.5)) * secSize);
+  // vData15 = texture2D(texture, dataUv + (vec2(3.0, -3.0) + vec2(0.5, -0.5)) * secSize);
+
   vEmitterStartTime = vData0[0];
   vEmitterPosition = vData6.xy;
   vVelocity = vData8.xy;

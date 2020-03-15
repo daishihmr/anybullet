@@ -62,16 +62,16 @@
       document.body.appendChild(texImage.domElement);
       mega.registerTexture("sun.png", texImage);
 
-      const emitters = Array.range(0, 1).map((i) => {
+      const emitters = Array.range(0, 100).map((i) => {
         return mega.createEmitter(particleJson);
       });
 
-      // const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
-      // const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
-      const x = () => canvas.width * 0.5;
-      const y = () => canvas.height * 0.5;
+      const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
+      const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
 
-      setTimeout(() => { emitters[0].start(512, 256) }, 10);
+      setTimeout(() => {
+        emitters.forEach(e => e.start(x(), y()));
+      }, 5000);
 
       // mega.set({
       //   index: 0,

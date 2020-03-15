@@ -176,6 +176,36 @@ vec4 section8() {
   return vec4(velocity.x, velocity.y, baseVelocity.x, baseVelocity.y);
 }
 
+vec4 section9() {
+  float emitterId = data2[3][2];
+
+  return vec4(emitterId, 0.0, 0.0, 0.0);
+}
+
+// vec4 section10() {
+//   return vec4(0.0);
+// }
+
+// vec4 section11() {
+//   return vec4(0.0);
+// }
+
+// vec4 section12() {
+//   return vec4(0.0);
+// }
+
+// vec4 section13() {
+//   return vec4(0.0);
+// }
+
+// vec4 section14() {
+//   return vec4(0.0);
+// }
+
+// vec4 section15() {
+//   return vec4(0.0);
+// }
+
 void main(void) {
   vec2 c = gl_PointCoord * 4.0;
   float stateSection = floor(c.y) * 4.0 + floor(c.x);
@@ -197,6 +227,20 @@ void main(void) {
     gl_FragColor = section7();
   } else if (stateSection == 8.0) {
     gl_FragColor = section8();
+  } else if (stateSection == 9.0) {
+    gl_FragColor = section9();
+  // } else if (stateSection == 10.0) {
+  //   gl_FragColor = section10();
+  // } else if (stateSection == 11.0) {
+  //   gl_FragColor = section11();
+  // } else if (stateSection == 12.0) {
+  //   gl_FragColor = section12();
+  // } else if (stateSection == 13.0) {
+  //   gl_FragColor = section13();
+  // } else if (stateSection == 14.0) {
+  //   gl_FragColor = section14();
+  // } else if (stateSection == 15.0) {
+  //   gl_FragColor = section15();
   } else {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
   }

@@ -14,6 +14,13 @@ varying vec4 vData5;
 varying vec4 vData6;
 varying vec4 vData7;
 varying vec4 vData8;
+varying vec4 vData9;
+// varying vec4 vData10;
+// varying vec4 vData11;
+// varying vec4 vData12;
+// varying vec4 vData13;
+// varying vec4 vData14;
+// varying vec4 vData15;
 
 vec4 section0() {
   vec4 d = vData0;
@@ -69,6 +76,41 @@ vec4 section8() {
   return d;
 }
 
+vec4 section9() {
+  vec4 d = vData9;
+  return d;
+}
+
+// vec4 section10() {
+//   vec4 d = vData10;
+//   return d;
+// }
+
+// vec4 section11() {
+//   vec4 d = vData11;
+//   return d;
+// }
+
+// vec4 section12() {
+//   vec4 d = vData12;
+//   return d;
+// }
+
+// vec4 section13() {
+//   vec4 d = vData13;
+//   return d;
+// }
+
+// vec4 section14() {
+//   vec4 d = vData14;
+//   return d;
+// }
+
+// vec4 section15() {
+//   vec4 d = vData15;
+//   return d;
+// }
+
 void main(void) {
   vec2 c = gl_PointCoord * 4.0;
   float stateSection = floor(c.y) * 4.0 + floor(c.x);
@@ -90,6 +132,20 @@ void main(void) {
     gl_FragColor = section7();
   } else if (stateSection == 8.0) {
     gl_FragColor = section8();
+  } else if (stateSection == 9.0) {
+    gl_FragColor = section9();
+  // } else if (stateSection == 10.0) {
+  //   gl_FragColor = section10();
+  // } else if (stateSection == 11.0) {
+  //   gl_FragColor = section11();
+  // } else if (stateSection == 12.0) {
+  //   gl_FragColor = section12();
+  // } else if (stateSection == 13.0) {
+  //   gl_FragColor = section13();
+  // } else if (stateSection == 14.0) {
+  //   gl_FragColor = section14();
+  // } else if (stateSection == 15.0) {
+  //   gl_FragColor = section15();
   } else {
     discard;
   }

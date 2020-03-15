@@ -12,6 +12,8 @@ phina.namespace(() => {
     },
 
     init: function ({ gl }) {
+      console.log("megaparticle準備中");
+
       if (gl.getExtension("OES_texture_float") == null) throw "Float Textureに対応してないらしいよ";
       if (gl.getExtension("WEBGL_color_buffer_float") == null) throw "Float Textureに対応してないらしいよ";
       if (gl.getExtension("OES_element_index_uint") == null) throw "drawElemnetsのインデックスにuint使えないらしいよ";
@@ -51,6 +53,8 @@ phina.namespace(() => {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       phigl.FloatTexFramebuffer.unbind(gl);
+
+      console.log("megaparticle準備完了");
     },
 
     delete: function () {
@@ -124,7 +128,7 @@ phina.namespace(() => {
         .setDrawMode(gl.POINTS);
     },
 
-    start: function (x, y, indices, params) {
+    start: function (emitterId, x, y, indices, params) {
       const gl = this.gl;
       const emitInterval = params.particleLifespan / params.maxParticles;
 
@@ -203,7 +207,7 @@ phina.namespace(() => {
         // [3]
         indices[0],
         params.blendFuncDestination == 1 ? 1 : 0,
-        0,
+        emitterId,
         0,
       ]);
       drawable.draw();

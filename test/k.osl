@@ -1,6 +1,0 @@
-shader simple(
-    output color Color = N
-)
-{
-    Color = N + vector(1, 1, 1) / 0.5;
-}

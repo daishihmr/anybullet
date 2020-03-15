@@ -48,6 +48,10 @@ HPがゼロになるとミス。３ミスでゲームオーバー。
 
 Particle2dxを表示するライブラリ。
 
+Particle2dxにxmlをロードするブックマークレット
+
+javascript:(()=>{xmlStr2emitter(prompt("xml"),p2dx.slot_current)})()
+
 ### TODO
 
 データテクスチャをダンプするしくみを作る。
@@ -55,7 +59,5 @@ Particle2dxを表示するライブラリ。
 エミッターのworldMatrixを反映させたい。
 
 ### バグ
-
-データ用テクスチャのサイズを大きくするとパーティクルが明るく表示される。
 
 エミッターをstopしたあと、updateかcopyを呼ばないと止まらない場合がある。

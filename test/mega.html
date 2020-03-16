@@ -24,10 +24,10 @@
     const loader = AssetLoader();
     loader.load({
       json: {
-        "sun.particle": "./particle/sun.json",
+        "fire01.particle": "./particle/fire01.json",
       },
       image: {
-        "sun.png": "./particle/sun.png",
+        "fire01.png": "./particle/fire01.png",
       },
       vertexShader: {
         "mega_start.vs": "../_bundle/asset/shader/megaparticle/mega_start.vs",
@@ -53,24 +53,23 @@
     });
 
     const main = () => {
-      const x = () => Random.randfloat(canvas.width * 0.1, canvas.width * 0.9);
-      const y = () => Random.randfloat(canvas.height * 0.1, canvas.height * 0.9);
+      const x = () => Random.randfloat(canvas.width * 0.01, canvas.width * 0.99);
+      const y = () => Random.randfloat(canvas.height * 0.01, canvas.height * 0.99);
 
-      const particleJson = AssetManager.get("json", "sun.particle").data;
+      const particleJson = AssetManager.get("json", "fire01.particle").data;
 
       const mega = megaparticle.ParticleSystem({ gl });
 
-      const texImage = phigl.ImageUtil.resizePowOf2({ src: "sun.png" });
+      const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire01.png" });
       document.body.appendChild(texImage.domElement);
-      mega.registerTexture("sun.png", texImage);
+      mega.registerTexture("fire01.png", texImage);
 
-      const emitters = Array.range(0, 1).map((i) => {
+      const emitters = Array.range(0, 500).map((i) => {
         const emitter = mega.createEmitter(particleJson);
         emitter.x = x();
         emitter.y = y();
         return emitter;
       });
-      mega.addMovableEmitter(emitters[0]);
 
       setTimeout(() => {
         emitters.forEach(e => e.start());
@@ -92,9 +91,6 @@
 
       let stats = null;
       const loop = () => {
-        emitters[0].x += -2;
-        emitters[0].y += 1;
-
         mega.update([0, 0]);
 
         gl.viewport(0, 0, canvas.width, canvas.height);

@@ -34,7 +34,7 @@ phina.namespace(() => {
       return this;
     },
 
-    setNext: function (next) {
+    connectTo: function (next) {
       this.on("postrender", ({ gl, previousTextureA, previousTextureB }) => {
         next.render(gl, previousTextureA, previousTextureB);
       });

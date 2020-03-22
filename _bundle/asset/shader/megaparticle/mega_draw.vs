@@ -85,6 +85,6 @@ void main(void) {
     vUv = uv;
     vColor = color;
     vAdditive = data6[2];
-    gl_Position = vec4(screenPosition.xyz, 1.0);
+    gl_Position = vec4(screenPosition, 1.0);
   }
 }

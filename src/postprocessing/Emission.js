@@ -11,7 +11,6 @@ phina.namespace(() => {
       this.dark = Lighting();
 
       this.framebuffer = this.createFramebuffer(gl, w, h);
-      this.drawable = this.createDrawable(gl);
     },
 
     setRenderer: function (renderer) {
@@ -35,6 +34,7 @@ phina.namespace(() => {
         array.draw(gl, renderer.lighting);
       }
       renderer.renderChildren(scene);
+
       renderer.lighting = bkup;
 
       phigl.Framebuffer.unbind(gl);

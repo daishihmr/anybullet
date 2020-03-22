@@ -101,20 +101,23 @@ phina.namespace(() => {
     draw: function (gl, lighting) {
       const drawable = GLSingleSprite.drawable;
 
-      if (this.blendMode === "source-over") {
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-      } else {
-        gl.disable(gl.DEPTH_TEST);
-      }
+      // if (this.blendMode === "source-over") {
+      //   gl.enable(gl.DEPTH_TEST);
+      //   gl.depthFunc(gl.LEQUAL);
+      // } else {
+      //   gl.disable(gl.DEPTH_TEST);
+      // }
 
-      if (this.blendMode === "source-over") {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-      }
+      // if (this.blendMode === "source-over") {
+      //   gl.enable(gl.BLEND);
+      //   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      // } else {
+      //   gl.enable(gl.BLEND);
+      //   gl.blendFunc(gl.ONE, gl.ONE);
+      // }
+
+      // gl.enable(gl.BLEND);
+      // gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const m = this._worldMatrix;
       const uni = drawable.uniforms;

@@ -10,6 +10,7 @@ phina.namespace(() => {
 
     init: function () {
       this.superInit();
+      this.enabled = true;
     },
 
     createFramebuffer: function (gl, w, h) {
@@ -54,7 +55,7 @@ phina.namespace(() => {
       return this;
     },
 
-    setNext: function (next) {
+    connectTo: function (next) {
       this.on("postrender", ({ gl, previousTexture }) => {
         next.render(gl, previousTexture);
       });

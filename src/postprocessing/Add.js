@@ -24,8 +24,8 @@ phina.namespace(() => {
         phigl.Framebuffer.unbind(gl);
       }
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE);
+      // gl.enable(gl.BLEND);
+      // gl.blendFunc(gl.ONE, gl.ONE);
       this.drawable.uniforms["srcTextureA"].setValue(0).setTexture(previousTextureA);
       this.drawable.uniforms["srcTextureB"].setValue(1).setTexture(previousTextureB);
       this.drawable.uniforms["weight"].setValue(this.weight);

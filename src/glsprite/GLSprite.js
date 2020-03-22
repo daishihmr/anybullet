@@ -97,21 +97,24 @@ phina.namespace(() => {
     draw: function (gl, lighting) {
       const drawable = GLSpriteArray.drawable;
 
-      if (this.blendMode === "source-over") {
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-      } else {
-        gl.disable(gl.DEPTH_TEST);
-      }
+      // if (this.blendMode === "source-over") {
+      //   gl.enable(gl.DEPTH_TEST);
+      //   gl.depthFunc(gl.LEQUAL);
+      // } else {
+      //   gl.disable(gl.DEPTH_TEST);
+      // }
 
-      if (this.blendMode === "source-over") {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      } else {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-      }
+      // if (this.blendMode === "source-over") {
+      //   gl.enable(gl.BLEND);
+      //   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      // } else {
+      //   gl.enable(gl.BLEND);
+      //   gl.blendFunc(gl.ONE, gl.ONE);
+      // }
+      // gl.enable(gl.BLEND);
+      // gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+      this.sort();
       for (let i = 0, len = this.instances.length; i < len; i++) {
         this.instances[i].updateAttributes(this.array);
       }
@@ -124,6 +127,24 @@ phina.namespace(() => {
 
       drawable.setInstanceAttributeData(this.array);
       drawable.draw(this.max);
+    },
+
+    sort: function () {
+      const instances = this.instances;
+
+      instances
+        .sort((lhs, rhs) => {
+          if (lhs.alphaEnabled) {
+            return 1;
+          } else if (rhs.alphaEnabled) {
+            return -1;
+          } else {
+            return -(lhs.z - rhs.z);
+          }
+        });
+      for (let i = 0, len = instances.length; i < len; i++) {
+        instances[i].instanceIndex = i;
+      }
     },
 
     dispose: function () {

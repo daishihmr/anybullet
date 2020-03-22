@@ -127,10 +127,10 @@ phina.namespace(() => {
     },
 
     draw: function (gl, lighting) {
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthFunc(gl.LEQUAL);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      // gl.enable(gl.DEPTH_TEST);
+      // gl.depthFunc(gl.LEQUAL);
+      // gl.enable(gl.BLEND);
+      // gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const m = this._worldMatrix;
 

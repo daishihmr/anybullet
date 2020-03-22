@@ -38,6 +38,8 @@ void main(void){
   }
 
   vec4 result = calcLighting(vPosition, col, emi, normal);
+  // result.rgb *= result.a;
+
   if (result.a < 1.0) {
     discard;
   } else {

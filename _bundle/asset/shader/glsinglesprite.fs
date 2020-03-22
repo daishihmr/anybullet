@@ -20,6 +20,7 @@ void main(void){
   vec3 normal = normalize(texture2D(texture_n, vUv).xyz * 2.0 - 1.0);
 
   vec4 result = calcLighting(vPosition, col, emi, normal);
+  result.rgb *= result.a;
 
   if (alphaEnabled > 0.0) {
     gl_FragColor = result;

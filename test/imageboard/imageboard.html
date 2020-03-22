@@ -31,11 +31,15 @@
   <script src="../../src/postprocessing/Add.js"></script>
   <script src="../../src/postprocessing/Merge.js"></script>
   <script src="../../src/postprocessing/Blur.js"></script>
+  <script src="../../src/megaparticle/Ibo32.js"></script>
+  <script src="../../src/megaparticle/Drawable32.js"></script>
+  <script src="../../src/megaparticle/ParticleSystem.js"></script>
+  <script src="../../src/megaparticle/Emitter.js"></script>
   <script>
-    const CANVAS_WIDTH = 1024;
-    const CANVAS_HEIGHT = 512;
-    const SCREEN_W = 910;
-    const SCREEN_H = 512;
+    const CANVAS_WIDTH = 512;
+    const CANVAS_HEIGHT = 256;
+    const SCREEN_W = CANVAS_HEIGHT * 16 / 9;
+    const SCREEN_H = CANVAS_HEIGHT;
     const SCREEN_X = (CANVAS_WIDTH - SCREEN_W) / 2;
     const SCREEN_Y = 0;
 
@@ -49,18 +53,28 @@
           className: "GLLoadingScene",
           arguments: {
             assets: {
+              json: {
+                "fire01.particle": "../particle/fire01.json",
+              },
               atlas: {
                 "sprite": "./sprite.json",
               },
               image: {
                 "black": "../../_bundle/asset/image/black.png",
                 "no_normal": "../../_bundle/asset/image/no_normal.png",
+                "fire01.png": "../particle/fire01.png",
               },
               vertexShader: {
                 "glsprite.vs": "../../_bundle/asset/shader/glsprite.vs",
                 "glsinglesprite.vs": "../../_bundle/asset/shader/glsinglesprite.vs",
                 "gltiledmap.vs": "../../_bundle/asset/shader/gltiledmap.vs",
-                "postprocessing.vs": "../../_bundle/asset/shader/postprocessing.vs",
+                "postprocessing.vs": "../../_bundle/asset/shader/postprocessing/postprocessing.vs",
+                "mega_start.vs": "../../_bundle/asset/shader/megaparticle/mega_start.vs",
+                "mega_stop.vs": "../../_bundle/asset/shader/megaparticle/mega_stop.vs",
+                "mega_update.vs": "../../_bundle/asset/shader/megaparticle/mega_update.vs",
+                "mega_draw.vs": "../../_bundle/asset/shader/megaparticle/mega_draw.vs",
+                "mega_copy.vs": "../../_bundle/asset/shader/megaparticle/mega_copy.vs",
+                "mega_set.vs": "../../_bundle/asset/shader/megaparticle/mega_set.vs",
               },
               fragmentShader: {
                 "glsprite.fs": "../../_bundle/asset/shader/glsprite.fs",
@@ -68,9 +82,15 @@
                 "gltiledmap.fs": "../../_bundle/asset/shader/gltiledmap.fs",
                 "lighting_uniform.fs": "../../_bundle/asset/shader/lighting_uniform.fs",
                 "lighting.fs": "../../_bundle/asset/shader/lighting.fs",
-                "add.fs": "../../_bundle/asset/shader/add.fs",
-                "blur.fs": "../../_bundle/asset/shader/blur.fs",
-                "passthrough.fs": "../../_bundle/asset/shader/passthrough.fs",
+                "add.fs": "../../_bundle/asset/shader/postprocessing/add.fs",
+                "blur.fs": "../../_bundle/asset/shader/postprocessing/blur.fs",
+                "passthrough.fs": "../../_bundle/asset/shader/postprocessing/passthrough.fs",
+                "mega_start.fs": "../../_bundle/asset/shader/megaparticle/mega_start.fs",
+                "mega_stop.fs": "../../_bundle/asset/shader/megaparticle/mega_stop.fs",
+                "mega_update.fs": "../../_bundle/asset/shader/megaparticle/mega_update.fs",
+                "mega_draw.fs": "../../_bundle/asset/shader/megaparticle/mega_draw.fs",
+                "mega_copy.fs": "../../_bundle/asset/shader/megaparticle/mega_copy.fs",
+                "mega_set.fs": "../../_bundle/asset/shader/megaparticle/mega_set.fs",
               },
               tiled: {
                 "testmap": "./mapchip/testmap.json",
@@ -127,6 +147,8 @@
         const spriteArray = renderer.getSpriteArray("sprite");
         const lighting = renderer.lighting;
 
+        // post processing --
+
         const start = StartPass(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
         const emission = Emission(gl, CANVAS_WIDTH, CANVAS_HEIGHT, this, renderer);
         const blurH = Blur(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -135,20 +157,31 @@
         blurV.setDirection(0, 0.02);
         const merge = Merge();
         const add = Add(gl, CANVAS_WIDTH, CANVAS_HEIGHT);
-        add.setWeight(1.0, 5.0);
+        this.emissionGlow = 1;
+        Tweener().attachTo(this)
+          .to({ emissionGlow: 2 * 0.9 }, 100)
+          .to({ emissionGlow: 2 * 1.1 }, 100)
+          .to({ emissionGlow: 2 * 1.0 }, 100)
+          .to({ emissionGlow: 2 * 1.2 }, 100)
+          .setLoop(true);
+        this.on("enterframe", () => {
+          add.setWeight(1.0, this.emissionGlow);
+        });
 
         renderer.addNext(start);
         renderer.addNext(emission);
-        emission.setNext(blurH);
-        blurH.setNext(blurV);
-        merge.merge(start, blurV).setNext(add);
+        emission.connectTo(blurH);
+        blurH.connectTo(blurV);
+        merge.merge(start, blurV).connectTo(add);
         add.isEnd = true;
 
-        lighting.setColor(100, 100, 100);
+        // post processing --
+
+        lighting.setColor(60, 60, 60);
         lighting.pointLights.forEach(pl => {
           pl
             .setZ(3 * 12)
-            .setPower(10000)
+            .setPower(2000)
             .setColor(255, 200, 100);
           // pl.addChildTo(this);
         });
@@ -168,7 +201,6 @@
 
         const bg = GLTiledMap({ gl, tiledAsset: "testmap", layer: 1 })
           .setPosition(SCREEN_X, SCREEN_Y)
-          .setScale(4)
           .addChildTo(this);
 
         lighting.pointLights[0]
@@ -190,14 +222,46 @@
         //   }
         // });
 
-        for (let i = 0; i < 5; i++) {
-          let y;
-          y = Random.randint(SCREEN_Y + 180, SCREEN_Y + SCREEN_H);
+        for (let i = 0; i < 10; i++) {
           Zombie({ spriteArray, image: "maid.png", normalMap: "maid_n.png", emissionMap: "maid_e.png" })
-            .setPosition(Random.randint(SCREEN_X + 200, SCREEN_X + SCREEN_W), y)
-            .setScale(-1.5, 1.5)
+            .setPosition(Random.randint(SCREEN_X, SCREEN_X + SCREEN_W), Random.randint(SCREEN_Y + SCREEN_H * 0.3, SCREEN_Y + SCREEN_H))
+            .setScale(-0.5, 0.5)
             .addChildTo(this);
         }
+
+        const particleJson = AssetManager.get("json", "fire01.particle").data;
+        const mega = megaparticle.ParticleSystem({ gl });
+        const texImage = phigl.ImageUtil.resizePowOf2({ src: "fire01.png" });
+        document.body.appendChild(texImage.domElement);
+        mega.registerTexture("fire01.png", texImage);
+
+        const emitter = mega.createEmitter(particleJson);
+        emitter.x = SCREEN_X + SCREEN_W * 0.5;
+        emitter.y = SCREEN_Y + SCREEN_H * 0.5;
+        emitter.z = 30;
+        emitter.start();
+
+        lighting.pointLights[2]
+          .setPosition(emitter.x, emitter.y)
+          .setColor(255, 100, 0)
+          .setPower(8000)
+          .addChildTo(this);
+        lighting.pointLights[2].tweener
+          .to({ power: 6000 * 0.9 }, 100)
+          .to({ power: 6000 * 1.1 }, 100)
+          .to({ power: 6000 * 0.9 }, 100)
+          .to({ power: 6000 * 1.0 }, 100)
+          .to({ power: 6000 * 0.8 }, 100)
+          .setLoop(true);
+
+        const particleSystemElement = phina.app.Element();
+        particleSystemElement.update = () => {
+          mega.update();
+        };
+        particleSystemElement.draw = () => {
+          mega.draw(CANVAS_WIDTH, CANVAS_HEIGHT);
+        };
+        particleSystemElement.addChildTo(this);
       },
     });
 
@@ -207,7 +271,7 @@
         this.superInit(options);
         this.setOrigin(0.5, 1);
       },
-      update: function () {
+      update: function (app) {
         this.z = 40 + this.y / SCREEN_H;
       },
     })

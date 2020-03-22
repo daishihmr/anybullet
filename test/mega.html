@@ -64,16 +64,24 @@
       document.body.appendChild(texImage.domElement);
       mega.registerTexture("fire01.png", texImage);
 
-      const emitters = Array.range(0, 500).map((i) => {
+      const count = 327;
+      const emitters = Array.range(0, 1).map((i) => {
         const emitter = mega.createEmitter(particleJson);
         emitter.x = x();
         emitter.y = y();
         return emitter;
       });
 
-      setTimeout(() => {
-        emitters.forEach(e => e.start());
-      }, 50);
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+          const now = Date.now();
+          emitters.forEach(e => e.start());
+          console.log(Date.now() - now);
+        }, 3000 * i + 0);
+        setTimeout(() => {
+          emitters.forEach(e => e.stop());
+        }, 3000 * i + 1500);
+      }
 
       // mega.set({
       //   index: 0,

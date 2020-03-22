@@ -32,7 +32,13 @@ phina.namespace(() => {
 
       this.flare("prerender", { gl });
 
+      gl.viewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
       for (let name in this.spriteArrays) {
         const array = this.spriteArrays[name];
         array.draw(gl, this.lighting);

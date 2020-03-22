@@ -1,17 +1,20 @@
 phina.namespace(() => {
 
-  const texSize = 4096;
+  const texSize = 1024;
   const posX = x => (-texSize / 2 + (x * 4 + 2)) / (texSize / 2);
   const posY = y => (texSize / 2 - (y * 4 + 2)) / (texSize / 2);
   const uvX = x => x * 4 / texSize;
   const uvY = y => 1 - y * 4 / texSize;
 
   phina.define("megaparticle.ParticleSystem", {
+    superClass: "phina.app.Element",
+
     _static: {
       texSize: texSize,
     },
 
     init: function ({ gl }) {
+      this.superInit();
       console.log("megaparticle準備中");
 
       if (gl.getExtension("OES_texture_float") == null) throw "Float Textureに対応してないらしいよ";
@@ -453,12 +456,12 @@ phina.namespace(() => {
     draw: function (canvasWidth, canvasHeight) {
       const gl = this.gl;
 
-      gl.disable(gl.CULL_FACE);
-      gl.disable(gl.DEPTH_TEST);
-      gl.enable(gl.BLEND);
+      // gl.disable(gl.CULL_FACE);
+      // gl.disable(gl.DEPTH_TEST);
+      // gl.enable(gl.BLEND);
       // gl.blendEquation(gl.FUNC_ADD);
       // gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      // gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       const drawable = this.drawableDraw;
       drawable.uniforms["texture"].setValue(0).setTexture(this.framebufferA.texture);

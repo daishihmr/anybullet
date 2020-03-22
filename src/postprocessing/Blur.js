@@ -16,18 +16,24 @@ phina.namespace(() => {
     },
 
     render: function (gl, previousTexture) {
-      if (!this.isEnd) {
-        this.framebuffer.bind(gl);
-      } else {
+      if (this.enabled) {
+        if (!this.isEnd) {
+          this.framebuffer.bind(gl);
+        } else {
+          phigl.Framebuffer.unbind(gl);
+        }
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        this.drawable.uniforms["srcTexture"].setValue(0).setTexture(previousTexture);
+        this.drawable.uniforms["direction"].setValue(this.direction);
+        this.drawable.draw();
         phigl.Framebuffer.unbind(gl);
-      }
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      this.drawable.uniforms["srcTexture"].setValue(0).setTexture(previousTexture);
-      this.drawable.uniforms["direction"].setValue(this.direction);
-      this.drawable.draw();
-      phigl.Framebuffer.unbind(gl);
 
-      this.flare("postrender", { gl, previousTexture: this.framebuffer.texture });
+        if (!this.isEnd) {
+          this.flare("postrender", { gl, previousTexture: this.framebuffer.texture });
+        }
+      } else if (!this.enabled && !this.isEnd) {
+        this.flare("postrender", { gl, previousTexture: previousTexture });
+      }
     },
 
   });
